@@ -1,0 +1,9 @@
+name: Dragons
+main: mc.dragons.dragons.core.Dragons
+version: 1.0.0
+author: DragonRider747
+depend: [ProtocolLib]
+api-version: 1.13
+commands:
+  dragons:
+    description: DRAGONS
