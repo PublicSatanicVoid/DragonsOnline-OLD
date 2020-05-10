@@ -11,6 +11,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class Dragons extends JavaPlugin {
 	private static Dragons INSTANCE;
 	
+	// JTN's first comment
+	
 	@Override
 	public void onLoad() {
 		synchronized(this) {
