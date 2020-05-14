@@ -1,11 +1,17 @@
 package mc.dragons.dragons.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import mc.dragons.dragons.core.bridge.Bridge;
 import mc.dragons.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
+import mc.dragons.dragons.core.commands.PlayerInfoCommand;
+import mc.dragons.dragons.core.events.ChatEventListener;
 import mc.dragons.dragons.core.events.DeathEventListener;
+import mc.dragons.dragons.core.events.EntityDamageByEntityEventListener;
+import mc.dragons.dragons.core.events.EntityDeathEventListener;
 import mc.dragons.dragons.core.events.JoinEventListener;
 import mc.dragons.dragons.core.events.QuitEventListener;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
@@ -13,6 +19,7 @@ import mc.dragons.dragons.core.storage.StorageManager;
 import mc.dragons.dragons.core.storage.impl.MongoConfig;
 import mc.dragons.dragons.core.storage.impl.MongoStorageManager;
 import mc.dragons.dragons.core.tasks.AutoSaveTask;
+import mc.dragons.dragons.core.tasks.SpawnEntityTask;
 
 /**
  * The main plugin class for Dragons RPG.
@@ -21,6 +28,7 @@ import mc.dragons.dragons.core.tasks.AutoSaveTask;
  *
  */
 public class Dragons extends JavaPlugin {
+	
 	private static Dragons INSTANCE;
 	private Bridge bridge;
 	
@@ -28,6 +36,7 @@ public class Dragons extends JavaPlugin {
 	private GameObjectRegistry gameObjectRegistry;
 	
 	private AutoSaveTask autoSaveTask;
+	private SpawnEntityTask spawnEntityTask;
 	
 	private ServerOptions serverOptions;
 	
@@ -61,6 +70,7 @@ public class Dragons extends JavaPlugin {
 		gameObjectRegistry = new GameObjectRegistry(this, storageManager);
 		
 		autoSaveTask = AutoSaveTask.getInstance(this);
+		spawnEntityTask = SpawnEntityTask.getInstance(this);
 		
 		serverOptions = new ServerOptions();
 		
@@ -68,13 +78,24 @@ public class Dragons extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new JoinEventListener(this), this);
 		getServer().getPluginManager().registerEvents(new QuitEventListener(), this);
 		getServer().getPluginManager().registerEvents(new DeathEventListener(this), this);
+		getServer().getPluginManager().registerEvents(new ChatEventListener(), this);
+		getServer().getPluginManager().registerEvents(new EntityDeathEventListener(this), this);
+		getServer().getPluginManager().registerEvents(new EntityDamageByEntityEventListener(this), this);
+		
+		getCommand("info").setExecutor(new PlayerInfoCommand());
 		
 		Bukkit.getScheduler().runTaskTimer(this, () -> autoSaveTask.run(false), 0, serverOptions.getAutoSavePeriodTicks());
+		Bukkit.getScheduler().runTaskTimer(this, () -> spawnEntityTask.run(), 0, serverOptions.getCustomSpawnRate());
 	}
 	
 	@Override
 	public void onDisable() {
 		autoSaveTask.run(true);
+		for(World w : getServer().getWorlds()) {
+			for(Entity e : w.getEntities()) {
+				e.remove();
+			}
+		}
 	}
 	
 	public static Dragons getInstance() {
@@ -96,4 +117,5 @@ public class Dragons extends JavaPlugin {
 	public Bridge getBridge() {
 		return bridge;
 	}
+
 }

@@ -1,5 +1,6 @@
 package mc.dragons.dragons.core.gameobject.player;
 
+import java.util.Date;
 import java.util.UUID;
 
 import org.bson.Document;
@@ -30,6 +31,10 @@ public class User extends GameObject {
 
 	private Player player;
 	
+	public static int calculateLevel(int xp) {
+		return (int) Math.floor(xp / 50000 + Math.sqrt(xp / 50));
+	}
+	
 	public User(Player player, StorageManager storageManager, StorageAccess storageAccess) {
 		super(GameObjectType.PLAYER, 
 				(UUID)storageAccess.get("_id"), 
@@ -54,6 +59,84 @@ public class User extends GameObject {
 	
 	public void sendTitle(ChatColor titleColor, String title, ChatColor subtitleColor, String subtitle, int fadeInTime, int showTime, int fadeOutTime) {
 		Dragons.getInstance().getBridge().sendTitle(player, titleColor, title, subtitleColor, subtitle, fadeInTime, showTime, fadeOutTime);
+	}
+	
+	public void addXP(int xp) {
+		int totalXP = (int)getData("xp") + xp;
+		int level = calculateLevel(totalXP);
+		if(level > getLevel()) {
+			sendTitle(ChatColor.DARK_AQUA, "Level Up!", ChatColor.AQUA, getLevel() + "  >>>  " + level, 10, 10, 10);
+		}
+		update(new Document("xp", totalXP).append("level", level));
+	}
+	
+	public int getXP() {
+		return (int)getData("xp");
+	}
+	
+	public int getLevel() {
+		return (int)getData("level");
+	}
+	
+	public ChatColor getLevelColor() {
+		int level = getLevel();
+		if(level < 10) {
+			return ChatColor.GRAY;
+		}
+		else if(level < 20) {
+			return ChatColor.AQUA;
+		}
+		else if(level < 30) {
+			return ChatColor.GREEN;
+		}
+		else if(level < 40) {
+			return ChatColor.YELLOW;
+		}
+		else if(level < 50) {
+			return ChatColor.DARK_AQUA;
+		}
+		else if(level < 60) {
+			return ChatColor.GOLD;
+		}
+		else if(level < 70) {
+			return ChatColor.DARK_GREEN;
+		}
+		else if(level < 80) {
+			return ChatColor.LIGHT_PURPLE;
+		}
+		else if(level < 90) {
+			return ChatColor.DARK_PURPLE;
+		}
+		else if(level < 100) {
+			return ChatColor.RED;
+		}
+		else {
+			return ChatColor.WHITE;
+		}
+	}
+	
+	public PermissionLevel getPermissionLevel() {
+		return PermissionLevel.fromInt((int)getData("permissionLevel"));
+	}
+	
+	public Rank getRank() {
+		return Rank.valueOf((String)getData("rank"));
+	}
+	
+	public Date getFirstJoined() {
+		return new Date((long)getData("firstJoined"));
+	}
+	
+	public Date getLastJoined() {
+		return new Date((long)getData("lastJoined"));
+	}
+	
+	public Date getLastSeen() {
+		return new Date((long)getData("lastSeen"));
+	}
+	
+	public int getSkillLevel(SkillType type) {
+		return (int)((Document) getData("skills")).getInteger(type.toString());
 	}
 	
 	@Override

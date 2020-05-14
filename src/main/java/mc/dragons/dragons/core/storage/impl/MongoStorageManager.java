@@ -107,4 +107,9 @@ public class MongoStorageManager implements StorageManager {
 		return storageAccess;
 	}
 
+	@Override
+	public void removeObject(GameObject gameObject) {
+		gameObjectCollection.deleteOne(gameObject.getIdentifier().getDocument());
+	}
+
 }

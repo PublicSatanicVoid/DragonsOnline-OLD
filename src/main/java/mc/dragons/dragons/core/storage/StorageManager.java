@@ -26,4 +26,5 @@ public interface StorageManager {
 	public StorageAccess getNewStorageAccess(GameObjectType objectType, Document initialData);
 	
 	public void storeObject(GameObject gameObject);
+	public void removeObject(GameObject gameObject);
 }

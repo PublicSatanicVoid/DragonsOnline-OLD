@@ -34,6 +34,7 @@ public class MongoStorageAccess implements StorageAccess {
 	}
 	
 	public void update(Document document) {
+		this.document.putAll(document);
 		collection.updateOne(identifier.getDocument(), new Document("$set", document));
 	}
 
