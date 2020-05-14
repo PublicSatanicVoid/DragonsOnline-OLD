@@ -116,7 +116,7 @@ public class User extends GameObject {
 	}
 	
 	public PermissionLevel getPermissionLevel() {
-		return PermissionLevel.fromInt((int)getData("permissionLevel"));
+		return PermissionLevel.valueOf((String)getData("permissionLevel"));
 	}
 	
 	public Rank getRank() {

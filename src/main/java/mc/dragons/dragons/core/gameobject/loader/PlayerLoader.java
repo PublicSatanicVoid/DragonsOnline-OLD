@@ -52,7 +52,7 @@ public class PlayerLoader extends GameObjectRegistry {
 				.append("maxHealth", player.getMaxHealth())
 				.append("xp", 0)
 				.append("level", 1)
-				.append("permissionLevel", PermissionLevel.USER.getLevel())
+				.append("permissionLevel", PermissionLevel.USER.toString())
 				.append("rank", Rank.DEFAULT.toString())
 				.append("firstJoined", System.currentTimeMillis())
 				.append("skills", skills);
