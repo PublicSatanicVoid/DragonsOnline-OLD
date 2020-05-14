@@ -41,7 +41,7 @@ public class DeathEventListener implements Listener {
 		// Respawn the player in 10 seconds, show a customized death message
 		Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable(){
 			public void run() {
-            	((CraftPlayer) player).getHandle().playerConnection.a(new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN));
+            	user.respawn();
             	user.sendTitle(ChatColor.DARK_RED, "You are dead.", ChatColor.RED, "Respawning in 10 seconds", 0, 20, 0);
 				player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 10, 10, false, false), true);
 				player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20 * 10, 10, false, false), true);

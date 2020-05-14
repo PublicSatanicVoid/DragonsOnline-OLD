@@ -8,7 +8,9 @@ import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.bridge.Bridge;
 import net.minecraft.server.v1_8_R3.ChatComponentText;
 import net.minecraft.server.v1_8_R3.IChatBaseComponent;
+import net.minecraft.server.v1_8_R3.PacketPlayInClientCommand;
 import net.minecraft.server.v1_8_R3.IChatBaseComponent.ChatSerializer;
+import net.minecraft.server.v1_8_R3.PacketPlayInClientCommand.EnumClientCommand;
 import net.minecraft.server.v1_8_R3.PacketPlayOutChat;
 import net.minecraft.server.v1_8_R3.PacketPlayOutTitle;
 import net.minecraft.server.v1_8_R3.PacketPlayOutTitle.EnumTitleAction;
@@ -36,4 +38,8 @@ public class Bridge_Spigot1_8_R3 implements Bridge {
 		((CraftPlayer) player).getHandle().playerConnection.sendPacket(subtitlePacket);
 	}
 
+	@Override
+	public void respawnPlayer(Player player) {
+		((CraftPlayer) player).getHandle().playerConnection.a(new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN));
+	}
 }

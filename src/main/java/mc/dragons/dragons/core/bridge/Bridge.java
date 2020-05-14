@@ -18,4 +18,5 @@ public interface Bridge {
 	public void sendTitle(Player player, ChatColor titleColor, String title, 
 			ChatColor subtitleColor, String subtitle, 
 			int fadeInTime, int showTime, int fadeOutTime);
+	public void respawnPlayer(Player player);
 }

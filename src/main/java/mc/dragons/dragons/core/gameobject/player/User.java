@@ -56,6 +56,10 @@ public class User extends GameObject {
 		Dragons.getInstance().getBridge().sendTitle(player, titleColor, title, subtitleColor, subtitle, fadeInTime, showTime, fadeOutTime);
 	}
 	
+	public void respawn() {
+		Dragons.getInstance().getBridge().respawnPlayer(player);
+	}
+	
 	@Override
 	public void autoSave() {
 		sendActionBar(ChatColor.GREEN + "Autosaving...");
