@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.npc.NPC;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 
@@ -24,7 +25,7 @@ public class GameObjectRegistry {
 	protected Dragons plugin;
 	protected StorageManager storageManager;
 	
-	private Set<GameObject> registeredObjects;
+	protected Set<GameObject> registeredObjects;
 	
 	public GameObjectRegistry(Dragons instance, StorageManager storageManager) {
 		this.plugin = instance;
@@ -70,5 +71,10 @@ public class GameObjectRegistry {
 					return false;
 				})
 				.collect(Collectors.toSet());
+	}
+
+	public void removeFromDatabase(GameObject gameObject) {
+		storageManager.removeObject(gameObject);
+		
 	}
 }

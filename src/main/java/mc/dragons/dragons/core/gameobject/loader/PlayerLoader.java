@@ -9,6 +9,9 @@ import org.bukkit.entity.Player;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.player.PermissionLevel;
+import mc.dragons.dragons.core.gameobject.player.Rank;
+import mc.dragons.dragons.core.gameobject.player.SkillType;
 import mc.dragons.dragons.core.gameobject.player.User;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
@@ -40,16 +43,24 @@ public class PlayerLoader extends GameObjectRegistry {
 	}
 
 	public User registerNew(Player player) {
+		Document skills = new Document();
+		for(SkillType skill : SkillType.values()) {
+			skills.append(skill.toString(), 0);
+		}
 		Document data = new Document("_id", player.getUniqueId())
 				.append("username", player.getName())
 				.append("maxHealth", player.getMaxHealth())
 				.append("xp", 0)
 				.append("level", 1)
-				.append("firstJoined", System.currentTimeMillis());
+				.append("permissionLevel", PermissionLevel.USER.toString())
+				.append("rank", Rank.DEFAULT.toString())
+				.append("firstJoined", System.currentTimeMillis())
+				.append("skills", skills);
 		// TODO: continue init
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.PLAYER, data);
 		User user = new User(player, storageManager, storageAccess);
 		playerToUser.put(player, user);
+		registeredObjects.add(user);
 		return user;
 	}
 	
