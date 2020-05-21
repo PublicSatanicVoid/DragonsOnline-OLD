@@ -44,6 +44,8 @@ public class Dragons extends JavaPlugin {
 	public static final String serverVersion = serverName.substring(serverName.lastIndexOf(".") + 1, serverName.length()).substring(1);
 	
 	
+	// JTN's first comment
+	
 	@Override
 	public void onLoad() {
 		synchronized(this) {

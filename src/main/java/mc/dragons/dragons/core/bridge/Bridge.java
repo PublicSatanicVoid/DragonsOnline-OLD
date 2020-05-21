@@ -1,7 +1,6 @@
 package mc.dragons.dragons.core.bridge;
 
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 /**
@@ -19,4 +18,5 @@ public interface Bridge {
 	public void sendTitle(Player player, ChatColor titleColor, String title, 
 			ChatColor subtitleColor, String subtitle, 
 			int fadeInTime, int showTime, int fadeOutTime);
+	public void respawnPlayer(Player player);
 }
