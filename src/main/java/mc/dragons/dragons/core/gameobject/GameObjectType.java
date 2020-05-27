@@ -6,6 +6,7 @@ import mc.dragons.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
 import mc.dragons.dragons.core.gameobject.loader.QuestLoader;
+import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.loader.StructureLoader;
 
 /**
@@ -22,7 +23,8 @@ public enum GameObjectType {
 	ITEM(ItemLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
  	NPC(NPCLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
 	QUEST(QuestLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	STRUCTURE(StructureLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager()));
+	STRUCTURE(StructureLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
+	REGION(RegionLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager()));
 
 	private GameObjectRegistry loader;
 	

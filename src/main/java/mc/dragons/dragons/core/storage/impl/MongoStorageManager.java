@@ -62,13 +62,21 @@ public class MongoStorageManager implements StorageManager {
 		FindIterable<Document> results = gameObjectCollection.find(search.append("type", objectType.toString()));
 		Document result = results.first();
 		if(result == null) {
+			Dragons.getInstance().getLogger().info("No storage access found for UUID " + uuid.toString() + " and type " + objectType.toString()); // TODO: remove me
 			return null;
 		}
 		Identifier identifier = new Identifier(objectType, uuid);
 		return new MongoStorageAccess(identifier, result, gameObjectCollection);
 	}
 	
+	
 	public Set<StorageAccess> getAllStorageAccess(GameObjectType objectType) {
+		if(gameObjectCollection == null) {
+			Dragons.getInstance().getLogger().info("gameObjectCollection is NULL");
+		}
+		if(objectType == null) {
+			Dragons.getInstance().getLogger().info("objectType parameter is NULL");
+		}
 		FindIterable<Document> dbResults = gameObjectCollection.find(new Document("type", objectType.toString()));
 		Set<StorageAccess> result = new HashSet<>();
 		

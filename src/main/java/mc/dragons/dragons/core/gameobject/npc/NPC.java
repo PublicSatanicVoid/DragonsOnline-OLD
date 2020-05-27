@@ -5,9 +5,11 @@ import java.util.UUID;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 
+import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
 import mc.dragons.dragons.core.gameobject.HealthBarUtil;
+import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 import net.md_5.bungee.api.ChatColor;
@@ -29,10 +31,12 @@ import net.md_5.bungee.api.ChatColor;
 public class NPC extends GameObject {
 
 	protected Entity entity;
+	protected GameObjectRegistry registry;
 	
 	public NPC(Entity entity, StorageManager storageManager, StorageAccess storageAccess) {
 		super(GameObjectType.NPC, (UUID)storageAccess.get("_id"), storageManager);
 		this.entity = entity;
+		this.registry = Dragons.getInstance().getGameObjectRegistry();
 	}
 
 	public void setMaxHealth(double maxHealth) {
@@ -81,15 +85,27 @@ public class NPC extends GameObject {
 	}
 	
 	public void updateHealthBar() {
-		entity.setCustomName(getName() + ChatColor.GRAY + " Lv. " + getLevel() + ChatColor.GRAY + " [" + HealthBarUtil.getHealthBar(getHealth(), getMaxHealth()) + ChatColor.DARK_GRAY + "]");
+		entity.setCustomName(getName() + ChatColor.GRAY + " Lv. " + getLevel()
+			/* + ChatColor.DARK_GRAY + " [" */ 
+			+ " " + HealthBarUtil.getHealthBar(getHealth(), getMaxHealth())
+			/* + ChatColor.DARK_GRAY + "]"*/ );
 	}
 	
 	public String getName() {
 		return (String)getData("name");
 	}
 	
+	public boolean isHostile() {
+		return Boolean.valueOf((String) getData("hostile"));
+	}
+	
 	public int getLevel() {
 		return (int)getData("level");
+	}
+	
+	public void remove() {
+		entity.remove();
+		registry.removeFromDatabase(this);
 	}
 	
 	public Entity e() {

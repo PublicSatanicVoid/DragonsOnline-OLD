@@ -1,5 +1,7 @@
 package mc.dragons.dragons.core.commands;
 
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,6 +13,7 @@ import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
 import mc.dragons.dragons.core.gameobject.player.PermissionLevel;
 import mc.dragons.dragons.core.gameobject.player.SkillType;
 import mc.dragons.dragons.core.gameobject.player.User;
+import mc.dragons.dragons.core.util.StringUtil;
 import net.md_5.bungee.api.ChatColor;
 
 public class PlayerInfoCommand implements CommandExecutor {
@@ -54,18 +57,15 @@ public class PlayerInfoCommand implements CommandExecutor {
 			skills += skill.toString() + " (" + targetUser.getSkillLevel(skill) + "), ";
 		}
 		skills = skills.substring(0, skills.length() - 2);
-		
+
 		sender.sendMessage(ChatColor.GOLD + "Report for User " + targetPlayer.getName());
 		sender.sendMessage(ChatColor.YELLOW + "UUID: " + ChatColor.RESET + targetPlayer.getUniqueId().toString());
 		sender.sendMessage(ChatColor.YELLOW + "XP: " + ChatColor.RESET + targetUser.getXP() + " [Level " + targetUser.getLevel() + "]");
 		sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetPlayer.getHealth() + " / " + targetPlayer.getMaxHealth());
 		sender.sendMessage(ChatColor.YELLOW + "Permission Level: " + ChatColor.RESET + targetUser.getPermissionLevel().toString());
 		sender.sendMessage(ChatColor.YELLOW + "Rank: " + ChatColor.RESET + targetUser.getRank().toString());
-		sender.sendMessage(ChatColor.YELLOW + "Location: " + ChatColor.RESET 
-			+ "(" + targetPlayer.getLocation().getBlockX()
-			+ ", " + targetPlayer.getLocation().getBlockY() 
-			+ ", " + targetPlayer.getLocation().getBlockZ() 
-			+ ") in " + targetPlayer.getLocation().getWorld().getName());
+		sender.sendMessage(ChatColor.YELLOW + "Location: " + ChatColor.RESET + StringUtil.locToString(targetPlayer.getLocation()) + " in " + targetPlayer.getWorld().getName());
+		sender.sendMessage(ChatColor.YELLOW + "Regions: " + ChatColor.RESET + targetUser.getRegions().stream().map(r -> r.getName()).collect(Collectors.joining(", ")));
 		sender.sendMessage(ChatColor.YELLOW + "Skills: " + ChatColor.RESET + skills);
 		sender.sendMessage(ChatColor.YELLOW + "First Join: " + ChatColor.RESET + targetUser.getFirstJoined().toString());
 		sender.sendMessage(ChatColor.YELLOW + "Last Join: " + ChatColor.RESET + targetUser.getLastJoined().toString());

@@ -23,3 +23,5 @@ commands:
     description: (GM) Manage NPCs.
   info:
     description: (GM) View a player's information.
+  region:
+    description: (GM) Manage regions.

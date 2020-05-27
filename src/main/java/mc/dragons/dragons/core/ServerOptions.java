@@ -12,6 +12,7 @@ public class ServerOptions {
 	
 	private int customSpawnRate;
 	private boolean customSpawningEnabled;
+	private int spawnLevelCap;
 	
 	public ServerOptions() {
 		autoSavePeriodTicks = 20 * 60 * 5;
@@ -19,6 +20,7 @@ public class ServerOptions {
 		
 		customSpawnRate = 20 * 10;
 		customSpawningEnabled = true;
+		spawnLevelCap = 10;
 	}
 	
 	
@@ -68,5 +70,15 @@ public class ServerOptions {
 	
 	public boolean isCustomSpawningEnabled() {
 		return customSpawningEnabled;
+	}
+	
+	
+	
+	public void setSpawnLevelCap(int cap) {
+		this.spawnLevelCap = cap;
+	}
+	
+	public int getSpawnLevelCap() {
+		return spawnLevelCap;
 	}
 }

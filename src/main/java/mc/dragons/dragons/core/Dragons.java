@@ -5,14 +5,19 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.comphenix.protocol.ProtocolLibrary;
+
 import mc.dragons.dragons.core.bridge.Bridge;
 import mc.dragons.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
 import mc.dragons.dragons.core.commands.PlayerInfoCommand;
+import mc.dragons.dragons.core.commands.RegionCommand;
 import mc.dragons.dragons.core.events.ChatEventListener;
 import mc.dragons.dragons.core.events.DeathEventListener;
 import mc.dragons.dragons.core.events.EntityDamageByEntityEventListener;
 import mc.dragons.dragons.core.events.EntityDeathEventListener;
+import mc.dragons.dragons.core.events.EntityMoveListener;
 import mc.dragons.dragons.core.events.JoinEventListener;
+import mc.dragons.dragons.core.events.MoveEventListener;
 import mc.dragons.dragons.core.events.QuitEventListener;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.storage.StorageManager;
@@ -81,11 +86,17 @@ public class Dragons extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new ChatEventListener(), this);
 		getServer().getPluginManager().registerEvents(new EntityDeathEventListener(this), this);
 		getServer().getPluginManager().registerEvents(new EntityDamageByEntityEventListener(this), this);
+		getServer().getPluginManager().registerEvents(new MoveEventListener(), this);
 		
 		getCommand("info").setExecutor(new PlayerInfoCommand());
+		getCommand("region").setExecutor(new RegionCommand(this));
 		
 		Bukkit.getScheduler().runTaskTimer(this, () -> autoSaveTask.run(false), 0, serverOptions.getAutoSavePeriodTicks());
 		Bukkit.getScheduler().runTaskTimer(this, () -> spawnEntityTask.run(), 0, serverOptions.getCustomSpawnRate());
+		
+		ProtocolLibrary.getProtocolManager().addPacketListener(new EntityMoveListener(this));
+		
+		//((RegionLoader)GameObjectType.REGION.getLoader()).loadAll();
 	}
 	
 	@Override

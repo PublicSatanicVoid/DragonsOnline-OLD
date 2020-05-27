@@ -29,9 +29,9 @@ public class ChatEventListener implements Listener {
 		User user = playerLoader.fromPlayer(event.getPlayer());
 		event.setCancelled(true);
 		
-		String message = ChatColor.DARK_GRAY + "[" + user.getLevelColor() + user.getLevel() + ChatColor.DARK_GRAY + "] ";
+		String message = user.getLevelColor() + "" + user.getLevel() + " ";
 		if(user.getRank().hasChatPrefix()) {
-			message += ChatColor.DARK_GRAY + "[" + user.getRank().getChatPrefix() + ChatColor.DARK_GRAY + "] ";
+			message += user.getRank().getChatPrefix() + " ";
 		}
 		message += user.getRank().getNameColor() + user.p().getName() + ChatColor.GRAY + " > ";
 		message += user.getRank().getChatColor() + event.getMessage();

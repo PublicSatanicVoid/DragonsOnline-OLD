@@ -11,9 +11,6 @@ import org.bukkit.metadata.FixedMetadataValue;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
 import mc.dragons.dragons.core.gameobject.npc.NPC;
-import mc.dragons.dragons.core.gameobject.player.PermissionLevel;
-import mc.dragons.dragons.core.gameobject.player.Rank;
-import mc.dragons.dragons.core.gameobject.player.User;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 import mc.dragons.dragons.core.storage.StorageUtil;
@@ -41,19 +38,21 @@ public class NPCLoader extends GameObjectRegistry {
 		return new NPC(e, storageManager, storageAccess);
 	}
 	
-	public NPC registerNew(Entity e, String name, double maxHealth, int level) {
+	public NPC registerNew(Entity e, String name, double maxHealth, int level, boolean hostile) {
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("name", name)
 				.append("entityType", e.getType().toString())
 				.append("maxHealth", maxHealth)
 				.append("lastLocation", StorageUtil.locToDoc(e.getLocation()))
-				.append("level", level);
+				.append("level", level)
+				.append("hostile", Boolean.toString(hostile));
 		e.setCustomNameVisible(true);
-		e.setCustomName(name + ChatColor.GRAY + " Lv. " + level);
+		e.setCustomName(name + ChatColor.GRAY + " Lv " + level);
 		// TODO: continue init
+		// TODO: enforce hostile/non-hostile behavior???
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC, data);
 		NPC npc = new NPC(e, storageManager, storageAccess);
-		npc.setMaxHealth(maxHealth); // TODO actually finish that method
+		npc.setMaxHealth(maxHealth);
 		npc.setHealth(maxHealth);
 		e.setMetadata("handle", new FixedMetadataValue(plugin, npc));
 		return npc;

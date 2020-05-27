@@ -43,6 +43,7 @@ public class EntityDeathEventListener implements Listener {
 			return; // Unauthorized entity
 		}
 		NPC npc = (NPC)handle.get(0).value();
+		npc.updateHealthBar(); // Show zero health
 
 		registry.removeFromDatabase(npc);
 		

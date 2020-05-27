@@ -9,12 +9,12 @@ import net.md_5.bungee.api.ChatColor;
  *
  */
 public class HealthBarUtil {
-	public static final int HEALTH_BARS = 20;
-	public static final String HEALTH_BAR_PIECE = "|";
+	public static final int HEALTH_BARS = 10;
+	public static final String HEALTH_BAR_PIECE = "/";
 	public static final ChatColor FULL_COLOR = ChatColor.GREEN;
 	public static final ChatColor WARNING_COLOR = ChatColor.RED;
 	public static final ChatColor EMPTY_COLOR = ChatColor.GRAY;
-	public static final int WARNING_THRESHOLD = 5;
+	public static final int WARNING_THRESHOLD = 4;
 	
 	public static String getHealthBar(double health, double max) {
 		String healthBar = "";

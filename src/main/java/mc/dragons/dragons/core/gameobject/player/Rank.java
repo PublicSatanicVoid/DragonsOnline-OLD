@@ -15,11 +15,11 @@ public enum Rank {
 	PATRON(ChatColor.DARK_AQUA + "PATRON", ChatColor.AQUA, ChatColor.WHITE),
 	YOUTUBE(ChatColor.RED + "YOU" + ChatColor.WHITE + "TUBE", ChatColor.RED, ChatColor.WHITE),
 	
-	MODERATOR(ChatColor.DARK_GREEN + "" + ChatColor.BOLD + "MOD", ChatColor.GREEN, ChatColor.WHITE),
-	GAME_MASTER(ChatColor.GOLD + "" + ChatColor.BOLD + "GM", ChatColor.YELLOW, ChatColor.WHITE),
-	ADMIN(ChatColor.DARK_RED + "" + ChatColor.BOLD + "ADMIN", ChatColor.RED, ChatColor.WHITE),
-	DEVELOPER(ChatColor.DARK_RED + "" + ChatColor.BOLD + "DEV", ChatColor.RED, ChatColor.WHITE),
-	OPERATOR(ChatColor.DARK_RED + "" + ChatColor.BOLD + "SYSOP", ChatColor.RED, ChatColor.WHITE);
+	MODERATOR(ChatColor.DARK_GREEN + "MOD", ChatColor.GREEN, ChatColor.WHITE),
+	GAME_MASTER(ChatColor.RED + "GM", ChatColor.RED, ChatColor.WHITE),
+	ADMIN(ChatColor.DARK_RED + "ADMIN", ChatColor.RED, ChatColor.WHITE),
+	DEVELOPER(ChatColor.DARK_RED + "DEV", ChatColor.RED, ChatColor.WHITE),
+	OPERATOR(ChatColor.DARK_RED + "SYSOP", ChatColor.RED, ChatColor.WHITE);
 	
 	private String chatPrefix;
 	private ChatColor nameColor;
