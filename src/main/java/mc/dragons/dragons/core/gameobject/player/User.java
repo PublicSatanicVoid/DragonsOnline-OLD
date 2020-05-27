@@ -137,6 +137,10 @@ public class User extends GameObject {
 	public void sendTitle(ChatColor titleColor, String title, ChatColor subtitleColor, String subtitle, int fadeInTime, int showTime, int fadeOutTime) {
 		Dragons.getInstance().getBridge().sendTitle(player, titleColor, title, subtitleColor, subtitle, fadeInTime, showTime, fadeOutTime);
 	}
+  
+	public void respawn() {
+		Dragons.getInstance().getBridge().respawnPlayer(player);
+	}
 	
 	public void addXP(int xp) {
 		int totalXP = (int)getData("xp") + xp;
