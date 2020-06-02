@@ -8,13 +8,17 @@ import net.md_5.bungee.api.ChatColor;
  * @author Rick
  *
  */
-public class HealthBarUtil {
-	public static final int HEALTH_BARS = 10;
-	public static final String HEALTH_BAR_PIECE = "/";
+public class ProgressBarUtil {
+	public static final int HEALTH_BARS = 30;
+	public static final String HEALTH_BAR_PIECE = "|";
 	public static final ChatColor FULL_COLOR = ChatColor.GREEN;
 	public static final ChatColor WARNING_COLOR = ChatColor.RED;
 	public static final ChatColor EMPTY_COLOR = ChatColor.GRAY;
 	public static final int WARNING_THRESHOLD = 4;
+	
+	public static final int PROGRESS_BARS = 40;
+	public static final String PROGRESS_BAR_PIECE = "|";
+	
 	
 	public static String getHealthBar(double health, double max) {
 		String healthBar = "";
@@ -26,5 +30,16 @@ public class HealthBarUtil {
 			else healthBar += EMPTY_COLOR + HEALTH_BAR_PIECE;
 		}
 		return healthBar;
+	}
+	
+	
+	public static String getCountdownBar(double percent) {
+		String progressBar = "";
+		int full = (int) Math.floor(percent * PROGRESS_BARS);
+		for(int i = 0; i < PROGRESS_BARS; i++) {
+			if(i < full) progressBar += WARNING_COLOR + PROGRESS_BAR_PIECE;
+			else progressBar += FULL_COLOR + PROGRESS_BAR_PIECE;
+		}
+		return progressBar;
 	}
 }

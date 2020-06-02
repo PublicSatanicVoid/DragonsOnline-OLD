@@ -39,13 +39,13 @@ public class GameObjectRegistry {
 	 * @param storageAccess
 	 * @return
 	 */
-	public GameObject loadObject(StorageAccess storageAccess) {
+	/*public GameObject loadObject(StorageAccess storageAccess) {
 		String type = (String) storageAccess.get("type");
 		GameObjectType objType = GameObjectType.get(type);
 		GameObject gameObject = objType.getLoader().loadObject(storageAccess);
 		registeredObjects.add(gameObject);
 		return gameObject;
-	}
+	}*/
 	
 	/**
 	 * Subclasses should override this to register a
@@ -65,7 +65,7 @@ public class GameObjectRegistry {
 	public Set<GameObject> getRegisteredObjects() {
 		return registeredObjects;
 	}
-	
+
 	public Set<GameObject> getRegisteredObjects(final GameObjectType... types) {
 		return registeredObjects.stream()
 				.filter(obj -> {

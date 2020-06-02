@@ -1,6 +1,6 @@
 package mc.dragons.dragons.core.gameobject.player;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 
 /**
  * Player ranks. Ranks are purely cosmetic;
@@ -12,14 +12,14 @@ import net.md_5.bungee.api.ChatColor;
  */
 public enum Rank {
 	DEFAULT("", ChatColor.GRAY, ChatColor.GRAY),
-	PATRON(ChatColor.DARK_AQUA + "PATRON", ChatColor.AQUA, ChatColor.WHITE),
-	YOUTUBE(ChatColor.RED + "YOU" + ChatColor.WHITE + "TUBE", ChatColor.RED, ChatColor.WHITE),
+	PATRON(ChatColor.DARK_AQUA + "[PATRON]", ChatColor.AQUA, ChatColor.WHITE),
+	YOUTUBE(ChatColor.RED + "[YOU" + ChatColor.WHITE + "TUBE" + ChatColor.RED + "]", ChatColor.RED, ChatColor.WHITE),
 	
-	MODERATOR(ChatColor.DARK_GREEN + "MOD", ChatColor.GREEN, ChatColor.WHITE),
-	GAME_MASTER(ChatColor.RED + "GM", ChatColor.RED, ChatColor.WHITE),
-	ADMIN(ChatColor.DARK_RED + "ADMIN", ChatColor.RED, ChatColor.WHITE),
-	DEVELOPER(ChatColor.DARK_RED + "DEV", ChatColor.RED, ChatColor.WHITE),
-	OPERATOR(ChatColor.DARK_RED + "SYSOP", ChatColor.RED, ChatColor.WHITE);
+	MODERATOR(ChatColor.DARK_GREEN + "[MOD]", ChatColor.GREEN, ChatColor.WHITE),
+	GAME_MASTER(ChatColor.DARK_RED + "[GM]", ChatColor.RED, ChatColor.WHITE),
+	ADMIN(ChatColor.DARK_RED + "[ADMIN]", ChatColor.RED, ChatColor.WHITE),
+	DEVELOPER(ChatColor.DARK_RED + "[DEV]", ChatColor.RED, ChatColor.WHITE),
+	OPERATOR(ChatColor.DARK_RED + "[SYSOP]", ChatColor.RED, ChatColor.WHITE);
 	
 	private String chatPrefix;
 	private ChatColor nameColor;

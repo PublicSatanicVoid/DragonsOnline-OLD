@@ -35,7 +35,7 @@ public class AutoSaveTask {
 	public void run(boolean forceSave) {
 		if(!plugin.getServerOptions().isAutoSaveEnabled() && !forceSave) return;
 		plugin.getLogger().info("Auto-Saving...");
-		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.PLAYER, GameObjectType.NPC)) {
+		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.USER, GameObjectType.NPC)) {
 			gameObject.autoSave();
 		}
 	}

@@ -8,13 +8,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import mc.dragons.dragons.core.Dragons;
-import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.player.User;
-import mc.dragons.dragons.core.storage.StorageAccess;
-import mc.dragons.dragons.core.storage.StorageManager;
 
 /**
  * Event handler for player joins. Takes care of user registration
@@ -24,14 +20,11 @@ import mc.dragons.dragons.core.storage.StorageManager;
  *
  */
 public class JoinEventListener implements Listener {
-	
-	private StorageManager storageManager;
-	private GameObjectRegistry gameObjectLoader;
+	private UserLoader playerLoader;
 	private Dragons plugin;
 	
 	public JoinEventListener(Dragons instance) {
-		storageManager = instance.getStorageManager();
-		gameObjectLoader = instance.getGameObjectRegistry();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 		plugin = instance;
 	}
 	
@@ -39,18 +32,11 @@ public class JoinEventListener implements Listener {
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player p = event.getPlayer();
 		UUID uuid = p.getUniqueId();
-		StorageAccess storageAccess = storageManager.getStorageAccess(
-				GameObjectType.PLAYER, 
-				uuid);
-		GameObject gameObject;
-		if(storageAccess == null) {
+		User user = playerLoader.loadObject(uuid);
+		if(user == null) {
 			plugin.getLogger().info("Player " + p.getName() + " joined for the first time");
-			gameObject = ((PlayerLoader)GameObjectType.PLAYER.getLoader()).registerNew(p);
+			user = playerLoader.registerNew(p);
 		}
-		else {	
-			gameObject = gameObjectLoader.loadObject(storageAccess);
-		}
-		User user = (User)gameObject;
 		user.handleJoin();
 	}
 }

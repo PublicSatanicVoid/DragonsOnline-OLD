@@ -4,12 +4,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.player.User;
-import mc.dragons.dragons.core.storage.StorageManager;
 
 /**
  * Event handler for player quitting.
@@ -19,10 +16,10 @@ import mc.dragons.dragons.core.storage.StorageManager;
  */
 public class QuitEventListener implements Listener {
 
-	private PlayerLoader playerLoader;
+	private UserLoader playerLoader;
 	
 	public QuitEventListener() {
-		playerLoader = (PlayerLoader)GameObjectType.PLAYER.getLoader();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 	}
 	
 	@EventHandler

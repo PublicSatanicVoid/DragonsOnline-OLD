@@ -1,7 +1,8 @@
 package mc.dragons.dragons.core.gameobject.region;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -71,8 +72,12 @@ public class Region extends GameObject {
 		storageAccess.update(update);
 	}
 	
-	public Set<Entry<String, Object>> getSpawnRates() {
-		return ((Document) getData("spawnRates")).entrySet();
+	public Map<String, Double> getSpawnRates() {
+		Map<String, Double> spawnRates = new HashMap<>();
+		for(Entry<String, Object> entry : ((Document) getData("spawnRates")).entrySet()) {
+			spawnRates.put(entry.getKey(), (double) entry.getValue());
+		}
+		return spawnRates;
 	}
 	
 	public double getSpawnRate(String npcClass) {

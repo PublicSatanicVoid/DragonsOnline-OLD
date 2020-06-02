@@ -109,10 +109,8 @@ public abstract class GameObject {
 	/**
 	 * Returns the UUID of the game object.
 	 * 
-	 * @apiNote Even in game objects representing players,
-	 * this UUID is NOT equal to the UUID of the player.
-	 * This is the UUID that uniquely identifies the game
-	 * object in the persistent data store.
+	 * @apiNote In game objects representing players,
+	 * this UUID is equal to the UUID of the player.
 	 * 
 	 * @return
 	 */

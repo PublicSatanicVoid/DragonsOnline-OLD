@@ -1,14 +1,14 @@
 package mc.dragons.dragons.core.events;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.player.User;
-import net.md_5.bungee.api.ChatColor;
 
 /**
  * Manages chat formatting.
@@ -18,10 +18,10 @@ import net.md_5.bungee.api.ChatColor;
  */
 public class ChatEventListener implements Listener {
 
-	private PlayerLoader playerLoader;
+	private UserLoader playerLoader;
 	
 	public ChatEventListener() {
-		playerLoader = (PlayerLoader)GameObjectType.PLAYER.getLoader();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 	}
 	
 	@EventHandler

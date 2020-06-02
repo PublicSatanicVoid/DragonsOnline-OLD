@@ -50,7 +50,7 @@ public class MongoStorageManager implements StorageManager {
 			plugin.getLogger().info("Successfully connected to MongoDB");
 		}
 		database = client.getDatabase(MongoConfig.DATABASE);
-		gameObjectCollection = database.getCollection(MongoConfig.GAMEOBJECTS_COLLECTION);	
+		gameObjectCollection = database.getCollection(MongoConfig.GAMEOBJECTS_COLLECTION);
 	}
 
 	public StorageAccess getStorageAccess(GameObjectType objectType, UUID objectUUID) {
@@ -62,7 +62,6 @@ public class MongoStorageManager implements StorageManager {
 		FindIterable<Document> results = gameObjectCollection.find(search.append("type", objectType.toString()));
 		Document result = results.first();
 		if(result == null) {
-			Dragons.getInstance().getLogger().info("No storage access found for UUID " + uuid.toString() + " and type " + objectType.toString()); // TODO: remove me
 			return null;
 		}
 		Identifier identifier = new Identifier(objectType, uuid);
@@ -118,6 +117,11 @@ public class MongoStorageManager implements StorageManager {
 	@Override
 	public void removeObject(GameObject gameObject) {
 		gameObjectCollection.deleteOne(gameObject.getIdentifier().getDocument());
+	}
+
+	@Override
+	public void push(GameObjectType objectType, Document selector, Document update) {
+		gameObjectCollection.updateMany(new Document(selector).append("type", objectType.toString()), new Document("$set", update));
 	}
 
 }

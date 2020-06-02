@@ -14,6 +14,8 @@ public class ServerOptions {
 	private boolean customSpawningEnabled;
 	private int spawnLevelCap;
 	
+	private int deathCountdown;
+	
 	public ServerOptions() {
 		autoSavePeriodTicks = 20 * 60 * 5;
 		autoSaveEnabled = true;
@@ -21,6 +23,8 @@ public class ServerOptions {
 		customSpawnRate = 20 * 10;
 		customSpawningEnabled = true;
 		spawnLevelCap = 10;
+		
+		deathCountdown = 10;
 	}
 	
 	
@@ -80,5 +84,14 @@ public class ServerOptions {
 	
 	public int getSpawnLevelCap() {
 		return spawnLevelCap;
+	}
+	
+	
+	public void setDeathCountdown(int seconds) {
+		this.deathCountdown = seconds;
+	}
+	
+	public int getDeathCountdown() {
+		return deathCountdown;
 	}
 }

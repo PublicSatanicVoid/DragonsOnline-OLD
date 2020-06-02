@@ -3,6 +3,7 @@ package mc.dragons.dragons.core.commands;
 import java.util.Map.Entry;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -10,8 +11,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import mc.dragons.dragons.core.Dragons;
+import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.player.PermissionLevel;
 import mc.dragons.dragons.core.gameobject.player.User;
@@ -20,13 +22,13 @@ import mc.dragons.dragons.core.util.StringUtil;
 import net.md_5.bungee.api.ChatColor;
 
 public class RegionCommand implements CommandExecutor {
-	private PlayerLoader playerLoader;
+	private UserLoader playerLoader;
 	private RegionLoader regionLoader;
 	private Dragons plugin;
 	
 	public RegionCommand(Dragons instance) {
-		playerLoader = (PlayerLoader)GameObjectType.PLAYER.getLoader();
-		regionLoader = (RegionLoader) GameObjectType.REGION.getLoader();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
+		regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 		plugin = instance;
 	}
 
@@ -48,12 +50,15 @@ public class RegionCommand implements CommandExecutor {
 		
 		if(args.length == 0) {
 			sender.sendMessage(ChatColor.YELLOW + "/region -c <RegionName>" + ChatColor.GRAY + " create a region");
+			sender.sendMessage(ChatColor.YELLOW + "/region -l" + ChatColor.GRAY + " list all regions");
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName>" + ChatColor.GRAY + " view region info");
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> corner <Corner#|go>" + ChatColor.GRAY + " set region boundary");
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> spawnrate [NpcClass] [SpawnRate]" + ChatColor.GRAY + " modify spawn rate");
-			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> flag <FlagName> <Value>" + ChatColor.DARK_GRAY + " modify region flags");
+			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> flag <FlagName> <Value>" + ChatColor.GRAY + " modify region flags");
 			sender.sendMessage(ChatColor.DARK_GRAY + "  Flags: " + ChatColor.GRAY + "fullname(string), desc(string), lvmin(int), lvrec(int), showtitle(boolean), allowhostile(boolean), pvp(boolean), pve(boolean)");
+			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> boundary" + ChatColor.GRAY + " generates a wool boundary around the region");
 			sender.sendMessage(ChatColor.YELLOW + "/region -d <RegionName>" + ChatColor.GRAY + " delete a region");
+			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Region names must not contain spaces.");
 			return true;
 		}
 		
@@ -75,6 +80,14 @@ public class RegionCommand implements CommandExecutor {
 			}
 			Region region = (Region) regionLoader.registerNew(args[1], player.getLocation(), player.getLocation());
 			sender.sendMessage(ChatColor.GREEN + "Created region " + args[1] + ". Its database identifier is " + region.getIdentifier().toString());
+		}
+		
+		else if(args[0].equalsIgnoreCase("-l")) {
+			sender.sendMessage(ChatColor.GREEN + "Listing all regions:");
+			for(GameObject gameObject : plugin.getGameObjectRegistry().getRegisteredObjects(GameObjectType.REGION)) {
+				Region region = (Region) gameObject;
+				sender.sendMessage(ChatColor.GRAY + "- " + region.getName());
+			}
 		}
 		
 		else if(args[0].equalsIgnoreCase("-s")) {
@@ -129,7 +142,7 @@ public class RegionCommand implements CommandExecutor {
 			if(args[2].equalsIgnoreCase("spawnrate")) {
 				if(args.length == 3) {
 					sender.sendMessage(ChatColor.GREEN + "Listing spawn rates for region " + args[1]);
-					for(Entry<String, Object> entry : region.getSpawnRates()) {
+					for(Entry<String, Double> entry : region.getSpawnRates().entrySet()) {
 						sender.sendMessage(ChatColor.GRAY + entry.getKey() + ": " + ChatColor.GREEN + entry.getValue());
 					}
 					sender.sendMessage(ChatColor.GRAY + "All other entities have a spawn rate of 0.");
@@ -166,6 +179,19 @@ public class RegionCommand implements CommandExecutor {
 				String value = StringUtil.concatArgs(args, 4);
 				region.setFlag(args[3], value);
 				sender.sendMessage(ChatColor.GREEN + "Set flag " + args[3] + " to " + value);
+				return true;
+			}
+			if(args[2].equalsIgnoreCase("boundary")) {
+				Location min = region.getMin();
+				Location max = region.getMax();
+				for(int x = min.getBlockX(); x < max.getBlockX(); x++) {
+					for(int y = min.getBlockY(); y < max.getBlockY(); y++) {
+						for(int z = min.getBlockZ(); z < max.getBlockZ(); z++) {
+							max.getWorld().getBlockAt(x, y, z).setType(Material.WOOL);
+						}
+					}
+				}
+				sender.sendMessage(ChatColor.GREEN + "Generated a boundary around the region.");
 				return true;
 			}
 			

@@ -1,7 +1,9 @@
 package mc.dragons.dragons.core.gameobject.player;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -9,10 +11,14 @@ import org.bson.Document;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.item.Item;
+import mc.dragons.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.region.Region;
 import mc.dragons.dragons.core.storage.StorageAccess;
@@ -43,31 +49,47 @@ public class User extends GameObject {
 	private Location cachedLocation;
 	
 	public static int calculateLevel(int xp) {
-		return (int) Math.floor(xp / 50000 + Math.sqrt(xp / 50));
+		return (int) Math.floor(xp / 50000 + Math.sqrt(xp / 50)) + 1;
 	}
 	
 	public static int calculateMaxHealth(int level) {
-		return 20 + (int) Math.floor(level / 3);
+		return Math.min(28, 20 + (int) Math.floor(level / 3));
 	}
 	
 	public User(Player player, StorageManager storageManager, StorageAccess storageAccess) {
-		super(GameObjectType.PLAYER, 
+		super(GameObjectType.USER, 
 				(UUID)storageAccess.get("_id"), 
 				storageManager);
 		if(regionLoader == null) {
-			regionLoader = (RegionLoader) GameObjectType.REGION.getLoader();
+			regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 		}
 		this.player = player;
-		player.setMaxHealth(calculateMaxHealth(getLevel()));
-		if(getData("health") != null) {
-			player.setHealth((double)getData("health"));
+		if(player != null) {
+			player.getInventory().clear();
+			player.setMaxHealth(calculateMaxHealth(getLevel()));
+			if(getData("health") != null) {
+				player.setHealth((double) getData("health"));
+			}
 		}
+		List<UUID> inventory = (List<UUID>) getData("inventory");
+		for(UUID uuid : inventory) {
+			Item item = ((ItemLoader) GameObjectType.ITEM.<Item>getLoader()).loadObject(uuid);
+			giveItem(item, false, player == null, true);
+		}
+		
 		cachedRegions = new HashSet<>();
 	}	
 	
 	private void updateState() {
-		
 		Set<Region> regions = regionLoader.getRegionsByLocationXZ(player.getLocation());
+		
+		// Find newly left regions
+		for(Region region : cachedRegions) {
+			if(!regions.contains(region)) {
+				//sendActionBar(ChatColor.LIGHT_PURPLE + "Leaving " + region.getFlags().getString("fullname"));
+				player.sendMessage(ChatColor.GRAY + "Leaving " + region.getFlags().getString("fullname"));
+			}
+		}
 		
 		// Find newly entered regions
 		for(Region region : regions) {
@@ -77,28 +99,55 @@ public class User extends GameObject {
 				}
 				//sendActionBar(ChatColor.LIGHT_PURPLE + "Entering " + region.getFlags().getString("fullname"));
 				player.sendMessage(ChatColor.GRAY + "Entering " + region.getFlags().getString("fullname"));
+				if(!region.getFlags().getString("desc").equals("")) {
+					player.sendMessage(ChatColor.DARK_GRAY + "   " + ChatColor.ITALIC + region.getFlags().getString("desc"));
+				}
 				int lvMin = Integer.parseInt(region.getFlags().getString("lvmin"));
 				int lvRec = Integer.parseInt(region.getFlags().getString("lvrec"));
 				if(getLevel() < lvMin) {
-					player.setVelocity(player.getLocation().toVector().subtract(cachedLocation.toVector()));
+					player.setVelocity(cachedLocation.toVector().subtract(player.getLocation().toVector()).multiply(2.0));
 					player.sendMessage(ChatColor.RED + "This region requires level " + lvMin + " to enter");
 				}
 				else if(getLevel() < lvRec) {
-					player.sendMessage(ChatColor.YELLOW + "Warning: The recommended level for this region is " + lvRec);
+					player.sendMessage(ChatColor.YELLOW + "Caution: The recommended level for this region is " + lvRec);
 				}
-			}
-		}
-		
-		// Find newly left regions
-		for(Region region : cachedRegions) {
-			if(!regions.contains(region)) {
-				//sendActionBar(ChatColor.LIGHT_PURPLE + "Leaving " + region.getFlags().getString("fullname"));
-				player.sendMessage(ChatColor.GRAY + "Leaving " + region.getFlags().getString("fullname"));
 			}
 		}
 
 		cachedLocation = player.getLocation();
 		cachedRegions = regions;
+	}
+	
+	public void giveItem(Item item, boolean updateDB, boolean dbOnly, boolean silent) {
+		if(!dbOnly) {
+			player.getInventory().addItem(item.getItemStack());
+		}
+		if(updateDB) {
+			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
+			inventory.add(item.getUUID());
+			storageAccess.update(new Document("inventory", inventory));
+		}
+		if(!silent) {
+			player.sendMessage(ChatColor.GRAY + "Received " + item.getDecoratedName());
+		}
+	}
+	
+	public void giveItem(Item item) {
+		giveItem(item, true, false, false);
+	}
+	
+	public void takeItem(Item item, boolean updateDB) {
+		player.getInventory().remove(item.getItemStack());
+		if(updateDB) {
+			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
+			inventory.remove(item.getUUID());
+			storageAccess.update(new Document("inventory", inventory));
+		}
+		player.sendMessage(ChatColor.GRAY + "Lost " + item.getDecoratedName());
+	}
+	
+	public void takeItem(Item item) {
+		takeItem(item, true);
 	}
 	
 	public void handleJoin() {
@@ -126,6 +175,22 @@ public class User extends GameObject {
 		return player;
 	}
 	
+	public String getName() {
+		return (String) getData("username");
+	}
+	
+	public Location getSavedLocation() {
+		return StorageUtil.docToLoc((Document) getData("lastLocation"));
+	}
+	
+	public double getSavedHealth() {
+		return (double) getData("health"); 
+	}
+	
+	public double getSavedMaxHealth() {
+		return (double) getData("maxHealth");
+	}
+	
 	public void sendActionBar(String message) {
 		Dragons.getInstance().getBridge().sendActionBar(player, message);
 	}
@@ -137,13 +202,36 @@ public class User extends GameObject {
 	public void sendTitle(ChatColor titleColor, String title, ChatColor subtitleColor, String subtitle, int fadeInTime, int showTime, int fadeOutTime) {
 		Dragons.getInstance().getBridge().sendTitle(player, titleColor, title, subtitleColor, subtitle, fadeInTime, showTime, fadeOutTime);
 	}
+	
+	public void clearInventory() {
+		player.getInventory().clear();
+		setData("inventory", new ArrayList<>());
+		sendActionBar(ChatColor.DARK_RED + "- All items have been lost! -");
+	}
+	
+	public void setDeathCountdown(int seconds) {
+		setData("deathCountdown", seconds);
+		setData("deathTime", System.currentTimeMillis());
+		player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * seconds, 10, false, false), true);
+		player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20 * seconds, 10, false, false), true);
+		player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 20 * seconds, 10, false, false), true);
+		player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 20 * seconds, 0, false, false), true);
+	}
   
+	public boolean hasDeathCountdown() {
+		Long deathTime = (Long) getData("deathTime");
+		if(deathTime == null) return false;
+		int deathCountdown = (int) getData("deathCountdown");
+		long now = System.currentTimeMillis();
+		return deathTime + 1000 * deathCountdown > now;
+	}
+	
 	public void respawn() {
 		Dragons.getInstance().getBridge().respawnPlayer(player);
 	}
 	
 	public void addXP(int xp) {
-		int totalXP = (int)getData("xp") + xp;
+		int totalXP = (int) getData("xp") + xp;
 		int level = calculateLevel(totalXP);
 		if(level > getLevel()) {
 			sendTitle(ChatColor.DARK_AQUA, "Level Up!", ChatColor.AQUA, getLevel() + "  >>>  " + level, 10, 10, 10);
@@ -153,11 +241,11 @@ public class User extends GameObject {
 	}
 	
 	public int getXP() {
-		return (int)getData("xp");
+		return (int) getData("xp");
 	}
 	
 	public int getLevel() {
-		return (int)getData("level");
+		return (int) getData("level");
 	}
 	
 	public ChatColor getLevelColor() {
@@ -166,13 +254,13 @@ public class User extends GameObject {
 			return ChatColor.GRAY;
 		}
 		else if(level < 20) {
-			return ChatColor.AQUA;
+			return ChatColor.YELLOW;
 		}
 		else if(level < 30) {
 			return ChatColor.GREEN;
 		}
 		else if(level < 40) {
-			return ChatColor.YELLOW;
+			return ChatColor.AQUA;
 		}
 		else if(level < 50) {
 			return ChatColor.DARK_AQUA;
@@ -198,11 +286,19 @@ public class User extends GameObject {
 	}
 	
 	public PermissionLevel getPermissionLevel() {
-		return PermissionLevel.valueOf((String)getData("permissionLevel"));
+		return PermissionLevel.valueOf((String) getData("permissionLevel"));
+	}
+	
+	public void setPermissionLevel(PermissionLevel permissionLevel) {
+		setData("permissionLevel", permissionLevel.toString());
 	}
 	
 	public Rank getRank() {
-		return Rank.valueOf((String)getData("rank"));
+		return Rank.valueOf((String) getData("rank"));
+	}
+	
+	public void setRank(Rank rank) {
+		setData("rank", rank.toString());
 	}
 	
 	public Set<Region> getRegions() {
@@ -210,19 +306,41 @@ public class User extends GameObject {
 	}
 	
 	public Date getFirstJoined() {
-		return new Date((long)getData("firstJoined"));
+		return new Date((long) getData("firstJoined"));
 	}
 	
 	public Date getLastJoined() {
-		return new Date((long)getData("lastJoined"));
+		return new Date((long) getData("lastJoined"));
 	}
 	
 	public Date getLastSeen() {
-		return new Date((long)getData("lastSeen"));
+		return new Date((long) getData("lastSeen"));
 	}
 	
 	public int getSkillLevel(SkillType type) {
 		return (int)((Document) getData("skills")).getInteger(type.toString());
+	}
+	
+	public void setSkillLevel(SkillType type, int level) {
+		Document skillLevels = (Document) getData("skills");
+		skillLevels.append(type.toString(), level);
+		update(new Document("skills", skillLevels));
+	}
+	
+	public void updateSkillProgress(SkillType type, double increment) {
+		Document skillProgress = (Document) getData("skillProgress");
+		double progress = skillProgress.getDouble(type.toString()) + increment;
+		int level = getSkillLevel(type);
+		skillProgress.append(type.toString(), progress);
+		if(progress >= 10 * (level + 1)) {
+			setSkillLevel(type, level + 1);
+			sendTitle(ChatColor.DARK_GREEN, type.getFriendlyName() + " Increased!", ChatColor.GREEN, level + " >>> " + (level + 1));
+		}
+		update(new Document("skillProgress", skillProgress));
+	}
+	
+	public double getSkillProgress(SkillType type) {
+		return (double)((Document) getData("skillProgress")).getDouble(type.toString());
 	}
 	
 	@Override

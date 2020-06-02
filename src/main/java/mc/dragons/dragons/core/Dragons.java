@@ -9,7 +9,12 @@ import com.comphenix.protocol.ProtocolLibrary;
 
 import mc.dragons.dragons.core.bridge.Bridge;
 import mc.dragons.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
+import mc.dragons.dragons.core.commands.ClearInventoryCommand;
+import mc.dragons.dragons.core.commands.ItemCommand;
+import mc.dragons.dragons.core.commands.NPCCommand;
+import mc.dragons.dragons.core.commands.PermissionLevelCommand;
 import mc.dragons.dragons.core.commands.PlayerInfoCommand;
+import mc.dragons.dragons.core.commands.RankCommand;
 import mc.dragons.dragons.core.commands.RegionCommand;
 import mc.dragons.dragons.core.events.ChatEventListener;
 import mc.dragons.dragons.core.events.DeathEventListener;
@@ -18,8 +23,17 @@ import mc.dragons.dragons.core.events.EntityDeathEventListener;
 import mc.dragons.dragons.core.events.EntityMoveListener;
 import mc.dragons.dragons.core.events.JoinEventListener;
 import mc.dragons.dragons.core.events.MoveEventListener;
+import mc.dragons.dragons.core.events.PlayerDropItemListener;
+import mc.dragons.dragons.core.events.PlayerPickupItemListener;
 import mc.dragons.dragons.core.events.QuitEventListener;
+import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.item.ItemClass;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
+import mc.dragons.dragons.core.gameobject.loader.ItemClassLoader;
+import mc.dragons.dragons.core.gameobject.loader.NPCClassLoader;
+import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
+import mc.dragons.dragons.core.gameobject.npc.NPCClass;
+import mc.dragons.dragons.core.gameobject.region.Region;
 import mc.dragons.dragons.core.storage.StorageManager;
 import mc.dragons.dragons.core.storage.impl.MongoConfig;
 import mc.dragons.dragons.core.storage.impl.MongoStorageManager;
@@ -89,9 +103,20 @@ public class Dragons extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new EntityDeathEventListener(this), this);
 		getServer().getPluginManager().registerEvents(new EntityDamageByEntityEventListener(this), this);
 		getServer().getPluginManager().registerEvents(new MoveEventListener(), this);
+		getServer().getPluginManager().registerEvents(new PlayerDropItemListener(), this);
+		getServer().getPluginManager().registerEvents(new PlayerPickupItemListener(), this);
 		
-		getCommand("info").setExecutor(new PlayerInfoCommand());
+		getCommand("info").setExecutor(new PlayerInfoCommand(this));
 		getCommand("region").setExecutor(new RegionCommand(this));
+		getCommand("npc").setExecutor(new NPCCommand(this));
+		getCommand("item").setExecutor(new ItemCommand(this));
+		getCommand("clear").setExecutor(new ClearInventoryCommand());
+		getCommand("rank").setExecutor(new RankCommand());
+		getCommand("permissionlevel").setExecutor(new PermissionLevelCommand());
+		
+		((RegionLoader) GameObjectType.REGION.<Region>getLoader()).lazyLoadAll();
+		((NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader()).lazyLoadAll();
+		((ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader()).lazyLoadAll();
 		
 		Bukkit.getScheduler().runTaskTimer(this, () -> autoSaveTask.run(false), 0, serverOptions.getAutoSavePeriodTicks());
 		Bukkit.getScheduler().runTaskTimer(this, () -> spawnEntityTask.run(), 0, serverOptions.getCustomSpawnRate());

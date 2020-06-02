@@ -14,14 +14,16 @@ import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 import mc.dragons.dragons.core.storage.StorageUtil;
 
-public class RegionLoader extends GameObjectRegistry {
+public class RegionLoader extends GameObjectLoader<Region> {
 
 	private static RegionLoader INSTANCE;
 	private boolean allLoaded = false;
+	private GameObjectRegistry masterRegistry;
 	
 	private RegionLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
 		//loadAll(); // Apparently when we do this it thinks that GameObjectType.REGION is null until construction is completed. So we need to move this out of constructor. Grr lazy loading
+		masterRegistry = instance.getGameObjectRegistry();
 	}
 	
 	public synchronized static RegionLoader getInstance(Dragons instance, StorageManager storageManager) {
@@ -39,7 +41,7 @@ public class RegionLoader extends GameObjectRegistry {
 	
 	public Region getRegionByName(String name) {
 		lazyLoadAll();
-		for(GameObject gameObject : getRegisteredObjects(GameObjectType.REGION)) {
+		for(GameObject gameObject : masterRegistry.getRegisteredObjects(GameObjectType.REGION)) {
 			Region region = (Region) gameObject;
 			if(region.getName().equalsIgnoreCase(name)) {
 				return region;
@@ -51,7 +53,7 @@ public class RegionLoader extends GameObjectRegistry {
 	public Set<Region> getRegionsByLocation(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
-		for(GameObject gameObject : getRegisteredObjects(GameObjectType.REGION)) {
+		for(GameObject gameObject : masterRegistry.getRegisteredObjects(GameObjectType.REGION)) {
 			Region region = (Region) gameObject;
 			if(region.contains(loc)) {
 				result.add(region);
@@ -63,7 +65,7 @@ public class RegionLoader extends GameObjectRegistry {
 	public Set<Region> getRegionsByLocationXZ(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
-		for(GameObject gameObject : getRegisteredObjects(GameObjectType.REGION)) {
+		for(GameObject gameObject : masterRegistry.getRegisteredObjects(GameObjectType.REGION)) {
 			Region region = (Region) gameObject;
 			if(region.containsXZ(loc)) {
 				result.add(region);
@@ -82,20 +84,20 @@ public class RegionLoader extends GameObjectRegistry {
 		storageAccess.set("world", corner1.getWorld().getName());
 		storageAccess.set("corner1", StorageUtil.vecToDoc(corner1.toVector()));
 		storageAccess.set("corner2", StorageUtil.vecToDoc(corner2.toVector()));
-		storageAccess.set("flags", new Document("fullname", "New Region").append("desc", "Description of new region").append("lvmin", "0").append("lvrec", "0").append("showtitle", "false")
+		storageAccess.set("flags", new Document("fullname", "New Region").append("desc", "").append("lvmin", "0").append("lvrec", "0").append("showtitle", "false")
 				.append("allowhostile", "true").append("pvp", "true").append("pve", "true"));
 		storageAccess.set("spawnRates", new Document());
 		Region region = new Region(storageManager, storageAccess);
-		registeredObjects.add(region);
+		masterRegistry.getRegisteredObjects().add(region);
 		return region;
 	}
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
 		allLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
-		removeFromRegistry(GameObjectType.REGION);
+		masterRegistry.removeFromRegistry(GameObjectType.REGION);
 		storageManager.getAllStorageAccess(GameObjectType.REGION).stream().forEach((storageAccess) -> {
-			super.loadObject(storageAccess);	
+			masterRegistry.getRegisteredObjects().add(loadObject(storageAccess));	
 		});
 	}
 	

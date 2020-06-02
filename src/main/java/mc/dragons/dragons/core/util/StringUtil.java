@@ -8,6 +8,9 @@ import org.bukkit.util.Vector;
 
 public class StringUtil {
 	
+	private StringUtil() {}
+	
+	
 	/**
 	 * String representation of xyz-coordinates of a location.
 	 * 

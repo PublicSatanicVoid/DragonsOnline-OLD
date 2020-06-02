@@ -8,7 +8,7 @@ import org.bukkit.entity.Entity;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.HealthBarUtil;
+import mc.dragons.dragons.core.gameobject.ProgressBarUtil;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
@@ -34,14 +34,16 @@ public class NPC extends GameObject {
 	protected GameObjectRegistry registry;
 	
 	public NPC(Entity entity, StorageManager storageManager, StorageAccess storageAccess) {
-		super(GameObjectType.NPC, (UUID)storageAccess.get("_id"), storageManager);
+		super(GameObjectType.NPC, (UUID) storageAccess.get("_id"), storageManager);
 		this.entity = entity;
 		this.registry = Dragons.getInstance().getGameObjectRegistry();
+		entity.setCustomNameVisible(true);
+		entity.setCustomName(getDecoratedName());
 	}
 
 	public void setMaxHealth(double maxHealth) {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			damageable.setMaxHealth(maxHealth);
 			setData("maxHealth", maxHealth);
 		}
@@ -49,7 +51,7 @@ public class NPC extends GameObject {
 	
 	public double getMaxHealth() {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			return damageable.getMaxHealth();
 		}
 		return 0.0;
@@ -57,50 +59,54 @@ public class NPC extends GameObject {
 	
 	public void setHealth(double health) {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			damageable.setHealth(health);
 		}
 	}
 	
 	public void damage(double damage, Entity source) {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			damageable.damage(damage, source);
 		}
 	}
 
 	public void damage(double damage) {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			damageable.damage(damage);
 		}
 	}
 	
 	public double getHealth() {
 		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable)entity;
+			Damageable damageable = (Damageable) entity;
 			return damageable.getHealth();
 		}
 		return 0.0;
 	}
 	
 	public void updateHealthBar() {
-		entity.setCustomName(getName() + ChatColor.GRAY + " Lv. " + getLevel()
-			/* + ChatColor.DARK_GRAY + " [" */ 
-			+ " " + HealthBarUtil.getHealthBar(getHealth(), getMaxHealth())
-			/* + ChatColor.DARK_GRAY + "]"*/ );
+		entity.setCustomName(getDecoratedName()
+			 + ChatColor.DARK_GRAY + " ["
+			 + ProgressBarUtil.getHealthBar(getHealth(), getMaxHealth())
+			 + ChatColor.DARK_GRAY + "]" );
 	}
 	
 	public String getName() {
-		return (String)getData("name");
+		return (String) getData("name");
+	}
+	
+	public String getDecoratedName() {
+		return (isHostile() ? ChatColor.RED : ChatColor.YELLOW) + getName() + ChatColor.GRAY + " Lv. " + getLevel();
 	}
 	
 	public boolean isHostile() {
-		return Boolean.valueOf((String) getData("hostile"));
+		return (boolean) getData("hostile");
 	}
 	
 	public int getLevel() {
-		return (int)getData("level");
+		return (int) getData("level");
 	}
 	
 	public void remove() {

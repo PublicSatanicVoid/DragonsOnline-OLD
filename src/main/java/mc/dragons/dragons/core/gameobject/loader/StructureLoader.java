@@ -5,7 +5,7 @@ import mc.dragons.dragons.core.gameobject.structure.Structure;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 
-public class StructureLoader extends GameObjectRegistry {
+public class StructureLoader extends GameObjectLoader<Structure> {
 
 	private static StructureLoader INSTANCE;
 	

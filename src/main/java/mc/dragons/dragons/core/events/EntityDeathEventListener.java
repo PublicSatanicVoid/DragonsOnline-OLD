@@ -12,7 +12,7 @@ import org.bukkit.metadata.MetadataValue;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.npc.NPC;
 import mc.dragons.dragons.core.gameobject.player.User;
 import net.md_5.bungee.api.ChatColor;
@@ -20,11 +20,11 @@ import net.md_5.bungee.api.ChatColor;
 public class EntityDeathEventListener implements Listener {
 
 	private GameObjectRegistry registry;
-	private PlayerLoader playerLoader;
+	private UserLoader playerLoader;
 	
 	public EntityDeathEventListener(Dragons instance) {
 		registry = instance.getGameObjectRegistry();
-		playerLoader = (PlayerLoader)GameObjectType.PLAYER.getLoader();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 	}
 	
 	public static int getXPReward(int levelOfKiller, int levelOfVictim) {

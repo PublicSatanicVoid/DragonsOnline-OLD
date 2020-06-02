@@ -5,7 +5,7 @@ import mc.dragons.dragons.core.gameobject.quest.Quest;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 
-public class QuestLoader extends GameObjectRegistry {
+public class QuestLoader extends GameObjectLoader<Quest> {
 
 	private static QuestLoader INSTANCE;
 	
