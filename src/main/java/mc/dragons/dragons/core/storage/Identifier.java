@@ -31,4 +31,9 @@ public class Identifier {
 	public UUID getUUID() {
 		return (UUID)identifierData.get("_id");
 	}
+	
+	@Override
+	public String toString() {
+		return getType().toString() + "#" + getUUID().toString();
+	}
 }

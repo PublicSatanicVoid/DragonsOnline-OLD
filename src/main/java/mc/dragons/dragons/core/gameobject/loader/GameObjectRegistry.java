@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.npc.NPC;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 
@@ -33,13 +32,20 @@ public class GameObjectRegistry {
 		this.registeredObjects = new HashSet<>();
 	}
 	
-	public GameObject loadObject(StorageAccess storageAccess) {
+	/**
+	 * Converts the storageAccess for a game object into 
+	 * the game object itself.
+	 * 
+	 * @param storageAccess
+	 * @return
+	 */
+	/*public GameObject loadObject(StorageAccess storageAccess) {
 		String type = (String) storageAccess.get("type");
 		GameObjectType objType = GameObjectType.get(type);
 		GameObject gameObject = objType.getLoader().loadObject(storageAccess);
 		registeredObjects.add(gameObject);
 		return gameObject;
-	}
+	}*/
 	
 	/**
 	 * Subclasses should override this to register a
@@ -48,7 +54,7 @@ public class GameObjectRegistry {
 	 * 
 	 * Some subclasses may require additional
 	 * parameters for instantiation, in which case
-	 * this method will not be overriden.
+	 * this method will not be overridden.
 	 * 
 	 * @return null
 	 */
@@ -59,8 +65,8 @@ public class GameObjectRegistry {
 	public Set<GameObject> getRegisteredObjects() {
 		return registeredObjects;
 	}
-	
-	public Set<GameObject> getRegisteredObjects(GameObjectType... types) {
+
+	public Set<GameObject> getRegisteredObjects(final GameObjectType... types) {
 		return registeredObjects.stream()
 				.filter(obj -> {
 					for(GameObjectType type : types) {
@@ -75,6 +81,10 @@ public class GameObjectRegistry {
 
 	public void removeFromDatabase(GameObject gameObject) {
 		storageManager.removeObject(gameObject);
-		
+		registeredObjects.remove(gameObject);
+	}
+	
+	public void removeFromRegistry(GameObjectType type) {
+		registeredObjects.removeIf(obj -> obj.getType() == type);
 	}
 }

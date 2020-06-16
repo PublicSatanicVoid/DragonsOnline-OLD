@@ -11,12 +11,22 @@ package mc.dragons.dragons.core.gameobject.player;
  *
  */
 public enum SkillType {
-	MELEE,
-	ARCHERY,
-	MINING,
-	FISHING,
-	COOKING,
-	DUAL_WIELD,
-	RIDING,
-	DEFENSE
+	MELEE("Melee"),
+	ARCHERY("Archery"),
+	MINING("Mining"),
+	FISHING("Fishing"),
+	COOKING("Cooking"),
+	DUAL_WIELD("Dual Wield"),
+	RIDING("Riding"),
+	DEFENSE("Defense");
+	
+	private String friendlyName;
+	
+	private SkillType(String friendlyName) {
+		this.friendlyName = friendlyName;
+	}
+	
+	public String getFriendlyName() {
+		return friendlyName;
+	}
 }

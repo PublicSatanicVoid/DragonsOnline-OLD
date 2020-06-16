@@ -1,19 +1,22 @@
 package mc.dragons.dragons.core.tasks;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.metadata.FixedMetadataValue;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.gameobject.loader.NPCLoader;
+import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.npc.NPC;
 import mc.dragons.dragons.core.gameobject.player.User;
-import net.md_5.bungee.api.ChatColor;
+import mc.dragons.dragons.core.gameobject.region.Region;
 
 /**
  * Repeating task that spawns region-based entities
@@ -29,11 +32,13 @@ public class SpawnEntityTask {
 	private Dragons plugin;
 	private GameObjectRegistry registry;
 	private NPCLoader npcLoader;
+	private RegionLoader regionLoader;
 	
 	private SpawnEntityTask(Dragons instance) {
 		this.plugin = instance;
 		this.registry = instance.getGameObjectRegistry();
-		this.npcLoader = (NPCLoader)GameObjectType.NPC.getLoader();
+		this.npcLoader = (NPCLoader) GameObjectType.NPC.<NPC>getLoader();
+		this.regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 	}
 	
 	public synchronized static SpawnEntityTask getInstance(Dragons pluginInstance) {
@@ -45,24 +50,36 @@ public class SpawnEntityTask {
 	
 	public void run() {
 		if(!plugin.getServerOptions().isCustomSpawningEnabled()) return;
-		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.PLAYER)) {
+		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.USER)) {
 			User user = (User)gameObject;
-			double xOffset = (Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 10);
-			double zOffset = (Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 10);
-			double yOffset = 2;
-			
-			double levelSeed = Math.random();
-			int level = 0;
-			if(levelSeed > 0.9) level = 4;
-			else if(levelSeed > 0.5) level = 3;
-			else if(levelSeed > 0.4) level = 2;
-			else level = 1;
-			
 			World world = user.p().getWorld();
-			Location loc = user.p().getLocation().clone().add(xOffset, yOffset, zOffset);
 			
-			Entity e = world.spawnEntity(loc, EntityType.ZOMBIE);
-			npcLoader.registerNew(e, ChatColor.RED + "Mean Zombie", 20.0 * level, level);
+			Set<Region> regions = regionLoader.getRegionsByLocationXZ(user.p().getLocation());
+			Map<String, Double> spawnRates = new HashMap<>();
+			for(Region region : regions) {
+				for(Entry<String, Double> entry : region.getSpawnRates().entrySet()) {
+					if(entry.getValue() > spawnRates.getOrDefault(entry.getKey(), 0.0)) {
+						spawnRates.put(entry.getKey(), entry.getValue());
+					}
+				}
+			}
+			for(Entry<String, Double> spawnRate : spawnRates.entrySet()) {
+				boolean spawn = Math.random() <= spawnRate.getValue() / 100;
+				if(spawn) {
+					double xOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
+					double zOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
+					double yOffset = 2;
+					Location loc = user.p().getLocation().add(xOffset, yOffset, zOffset);
+					npcLoader.registerNew(world, loc, spawnRate.getKey());
+					for(int i = 0; i < 50; i++) {
+						if(loc.getBlock().getType().isSolid()) {
+							loc.add(0, 1, 0);
+						}
+						else break;
+					}
+					
+				}
+			}
 		}
 	}
 	

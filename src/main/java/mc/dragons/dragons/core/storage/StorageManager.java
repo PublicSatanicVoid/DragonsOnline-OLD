@@ -27,4 +27,6 @@ public interface StorageManager {
 	
 	public void storeObject(GameObject gameObject);
 	public void removeObject(GameObject gameObject);
+	
+	public void push(GameObjectType objectType, Document selector, Document update);
 }

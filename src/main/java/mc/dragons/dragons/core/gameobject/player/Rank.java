@@ -1,6 +1,6 @@
 package mc.dragons.dragons.core.gameobject.player;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 
 /**
  * Player ranks. Ranks are purely cosmetic;
@@ -11,24 +11,30 @@ import net.md_5.bungee.api.ChatColor;
  *
  */
 public enum Rank {
-	DEFAULT("", ChatColor.GRAY, ChatColor.GRAY),
-	PATRON(ChatColor.DARK_AQUA + "PATRON", ChatColor.AQUA, ChatColor.WHITE),
-	YOUTUBE(ChatColor.RED + "YOU" + ChatColor.WHITE + "TUBE", ChatColor.RED, ChatColor.WHITE),
+	DEFAULT("Default", "", ChatColor.GRAY, ChatColor.GRAY),
+	PATRON("Patron", ChatColor.DARK_AQUA + "[PATRON]", ChatColor.AQUA, ChatColor.WHITE),
+	YOUTUBE("YouTuber", ChatColor.RED + "[YOU" + ChatColor.WHITE + "TUBE" + ChatColor.RED + "]", ChatColor.RED, ChatColor.WHITE),
 	
-	MODERATOR(ChatColor.DARK_GREEN + "" + ChatColor.BOLD + "MOD", ChatColor.GREEN, ChatColor.WHITE),
-	GAME_MASTER(ChatColor.GOLD + "" + ChatColor.BOLD + "GM", ChatColor.YELLOW, ChatColor.WHITE),
-	ADMIN(ChatColor.DARK_RED + "" + ChatColor.BOLD + "ADMIN", ChatColor.RED, ChatColor.WHITE),
-	DEVELOPER(ChatColor.DARK_RED + "" + ChatColor.BOLD + "DEV", ChatColor.RED, ChatColor.WHITE),
-	OPERATOR(ChatColor.DARK_RED + "" + ChatColor.BOLD + "SYSOP", ChatColor.RED, ChatColor.WHITE);
+	MODERATOR("Moderator", ChatColor.DARK_GREEN + "[MOD]", ChatColor.GREEN, ChatColor.WHITE),
+	GAME_MASTER("Game Master", ChatColor.DARK_RED + "[GM]", ChatColor.RED, ChatColor.WHITE),
+	ADMIN("Admin", ChatColor.DARK_RED + "[ADMIN]", ChatColor.RED, ChatColor.WHITE),
+	DEVELOPER("Developer", ChatColor.DARK_RED + "[DEV]", ChatColor.RED, ChatColor.WHITE),
+	OPERATOR("System Operator", ChatColor.DARK_RED + "[SYSOP]", ChatColor.RED, ChatColor.WHITE);
 	
+	private String rankName;
 	private String chatPrefix;
 	private ChatColor nameColor;
 	private ChatColor chatColor;
 	
-	Rank(String chatPrefix, ChatColor nameColor, ChatColor chatColor) {
+	Rank(String rankName, String chatPrefix, ChatColor nameColor, ChatColor chatColor) {
+		this.rankName = rankName;
 		this.chatPrefix = chatPrefix;
 		this.nameColor = nameColor;
 		this.chatColor = chatColor;
+	}
+	
+	public String getRankName() {
+		return rankName;
 	}
 	
 	public boolean hasChatPrefix() {

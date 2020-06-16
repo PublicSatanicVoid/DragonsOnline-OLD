@@ -8,13 +8,13 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import mc.dragons.dragons.core.Dragons;
-import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
-import mc.dragons.dragons.core.gameobject.loader.PlayerLoader;
+import mc.dragons.dragons.core.gameobject.item.Item;
+import mc.dragons.dragons.core.gameobject.item.ItemClass;
+import mc.dragons.dragons.core.gameobject.loader.ItemClassLoader;
+import mc.dragons.dragons.core.gameobject.loader.ItemLoader;
+import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.player.User;
-import mc.dragons.dragons.core.storage.StorageAccess;
-import mc.dragons.dragons.core.storage.StorageManager;
 
 /**
  * Event handler for player joins. Takes care of user registration
@@ -24,34 +24,37 @@ import mc.dragons.dragons.core.storage.StorageManager;
  *
  */
 public class JoinEventListener implements Listener {
-	
-	private StorageManager storageManager;
-	private GameObjectRegistry gameObjectLoader;
+	private UserLoader playerLoader;
+	private ItemClassLoader itemClassLoader;
+	private ItemLoader itemLoader;
 	private Dragons plugin;
 	
+	private ItemClass[] defaultInventory;
+	
 	public JoinEventListener(Dragons instance) {
-		storageManager = instance.getStorageManager();
-		gameObjectLoader = instance.getGameObjectRegistry();
+		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
+		itemClassLoader = (ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader();
+		itemLoader = (ItemLoader) GameObjectType.ITEM.<Item>getLoader();
 		plugin = instance;
+		
+		defaultInventory = new ItemClass[] { itemClassLoader.getItemClassByClassName("LousyStick") };
 	}
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player p = event.getPlayer();
 		UUID uuid = p.getUniqueId();
-		StorageAccess storageAccess = storageManager.getStorageAccess(
-				GameObjectType.PLAYER, 
-				uuid);
-		GameObject gameObject;
-		if(storageAccess == null) {
+		User user = playerLoader.loadObject(uuid);
+		if(user == null) {
 			plugin.getLogger().info("Player " + p.getName() + " joined for the first time");
-			gameObject = ((PlayerLoader)GameObjectType.PLAYER.getLoader()).registerNew(p);
+			user = playerLoader.registerNew(p);
+			user.sendToFloor("UndeadForest");
+			for(ItemClass itemClass : defaultInventory) {
+				user.giveItem(itemLoader.registerNew(itemClass), true, false, true);
+			}
 		}
-		else {	
-			gameObject = gameObjectLoader.loadObject(storageAccess);
-		}
-		User user = (User)gameObject;
 		user.handleJoin();
+		event.setJoinMessage(null);
 	}
 }
 	

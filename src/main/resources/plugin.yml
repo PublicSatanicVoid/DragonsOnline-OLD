@@ -4,7 +4,6 @@ version: 1.0.0
 author: DragonRider747
 depend: [ProtocolLib]
 loadbefore: [WorldEdit]
-api-version: 1.13
 commands:
   dragons:
     description: DRAGONS
@@ -15,7 +14,9 @@ commands:
     description: Add, accept, and manage friends.
     aliases: /f
   item:
-    description: (GM) Receive the specified item.
+    description: (GM) Manage items..
+  floor:
+    description: (GM) Manage floors.
   quest:
     description: (GM) Manage quests.
     aliases: /q
@@ -23,3 +24,11 @@ commands:
     description: (GM) Manage NPCs.
   info:
     description: (GM) View a player's information.
+  region:
+    description: (GM) Manage regions.
+  clear:
+    description: Clear your inventory. This cannot be undone.
+  rank:
+    description: (GM) Set player rank.
+  permissionlevel:
+    description: (SYSOP) Set player permission level
