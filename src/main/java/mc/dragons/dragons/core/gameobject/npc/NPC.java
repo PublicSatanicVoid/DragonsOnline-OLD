@@ -10,6 +10,7 @@ import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
 import mc.dragons.dragons.core.gameobject.ProgressBarUtil;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
+import mc.dragons.dragons.core.gameobject.loader.NPCClassLoader;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 import net.md_5.bungee.api.ChatColor;
@@ -32,6 +33,8 @@ public class NPC extends GameObject {
 
 	protected Entity entity;
 	protected GameObjectRegistry registry;
+
+	protected static NPCClassLoader npcClassLoader;
 	
 	public NPC(Entity entity, StorageManager storageManager, StorageAccess storageAccess) {
 		super(GameObjectType.NPC, (UUID) storageAccess.get("_id"), storageManager);
@@ -39,6 +42,16 @@ public class NPC extends GameObject {
 		this.registry = Dragons.getInstance().getGameObjectRegistry();
 		entity.setCustomNameVisible(true);
 		entity.setCustomName(getDecoratedName());
+		
+		if(npcClassLoader == null) {
+			npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
+		}
+	}
+	
+	public NPCClass getNPCClass() {
+		String className = (String) storageAccess.get("className");
+		if(className == null) return null;
+		return npcClassLoader.getNPCClassByClassName(className);
 	}
 
 	public void setMaxHealth(double maxHealth) {

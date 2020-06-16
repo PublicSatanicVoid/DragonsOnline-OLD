@@ -81,7 +81,7 @@ public class GameObjectRegistry {
 
 	public void removeFromDatabase(GameObject gameObject) {
 		storageManager.removeObject(gameObject);
-		registeredObjects.removeIf(obj -> obj.equals(gameObject));
+		registeredObjects.remove(gameObject);
 	}
 	
 	public void removeFromRegistry(GameObjectType type) {

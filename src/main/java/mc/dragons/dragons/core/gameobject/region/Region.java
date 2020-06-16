@@ -12,11 +12,15 @@ import org.bukkit.util.Vector;
 
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.floor.Floor;
+import mc.dragons.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.dragons.core.storage.StorageAccess;
 import mc.dragons.dragons.core.storage.StorageManager;
 import mc.dragons.dragons.core.storage.StorageUtil;
 
 public class Region extends GameObject {
+	
+	private static FloorLoader floorLoader;
 	
 	// Used to cache data about a region when we know it hasn't been modified to speed up real-time operations
 	private class CachedRegionData {
@@ -43,10 +47,15 @@ public class Region extends GameObject {
 	}
 	
 	private CachedRegionData regionData;
+	private Floor floor;
 	
 	public Region(StorageManager storageManager, StorageAccess storageAccess) {
 		super(GameObjectType.REGION, storageAccess.getIdentifier().getUUID(), storageManager);
 		regionData = new CachedRegionData(storageAccess);
+		if(floorLoader == null) {
+			floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
+		}
+		floor = floorLoader.fromWorld(getWorld());
 	}
 	
 	public Location getMin() {
@@ -100,12 +109,18 @@ public class Region extends GameObject {
 		return getMin().getWorld();
 	}
 	
+	public Floor getFloor() {
+		return floor;
+	}
+	
 	public boolean containsXZ(Location test) {
+		if(getWorld() != test.getWorld()) return false;
 		return test.getX() >= getMin().getX() && test.getX() <= getMax().getX()
 				&& test.getZ() >= getMin().getZ() && test.getZ() <= getMax().getZ();
 	}
 	
 	public boolean contains(Location test) {
+		if(getWorld() != test.getWorld()) return false;
 		return containsXZ(test) && test.getY() >= getMin().getY() && test.getY() <= getMax().getY();
 	}
 	
@@ -117,6 +132,7 @@ public class Region extends GameObject {
 		storageAccess.set("corner1", StorageUtil.vecToDoc(corner1.toVector()));
 		storageAccess.set("corner2", StorageUtil.vecToDoc(corner2.toVector()));
 		regionData = new CachedRegionData(storageAccess);
+		floor = floorLoader.fromWorld(getWorld());
 	}
 	
 

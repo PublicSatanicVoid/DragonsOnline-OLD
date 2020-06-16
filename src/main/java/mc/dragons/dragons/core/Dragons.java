@@ -3,6 +3,7 @@ package mc.dragons.dragons.core;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.comphenix.protocol.ProtocolLibrary;
@@ -10,6 +11,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import mc.dragons.dragons.core.bridge.Bridge;
 import mc.dragons.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
 import mc.dragons.dragons.core.commands.ClearInventoryCommand;
+import mc.dragons.dragons.core.commands.FloorCommand;
 import mc.dragons.dragons.core.commands.ItemCommand;
 import mc.dragons.dragons.core.commands.NPCCommand;
 import mc.dragons.dragons.core.commands.PermissionLevelCommand;
@@ -21,13 +23,16 @@ import mc.dragons.dragons.core.events.DeathEventListener;
 import mc.dragons.dragons.core.events.EntityDamageByEntityEventListener;
 import mc.dragons.dragons.core.events.EntityDeathEventListener;
 import mc.dragons.dragons.core.events.EntityMoveListener;
+import mc.dragons.dragons.core.events.HungerChangeEventListener;
 import mc.dragons.dragons.core.events.JoinEventListener;
 import mc.dragons.dragons.core.events.MoveEventListener;
 import mc.dragons.dragons.core.events.PlayerDropItemListener;
 import mc.dragons.dragons.core.events.PlayerPickupItemListener;
 import mc.dragons.dragons.core.events.QuitEventListener;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.floor.Floor;
 import mc.dragons.dragons.core.gameobject.item.ItemClass;
+import mc.dragons.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.gameobject.loader.ItemClassLoader;
 import mc.dragons.dragons.core.gameobject.loader.NPCClassLoader;
@@ -96,24 +101,31 @@ public class Dragons extends JavaPlugin {
 		serverOptions = new ServerOptions();
 		
 		
-		getServer().getPluginManager().registerEvents(new JoinEventListener(this), this);
-		getServer().getPluginManager().registerEvents(new QuitEventListener(), this);
-		getServer().getPluginManager().registerEvents(new DeathEventListener(this), this);
-		getServer().getPluginManager().registerEvents(new ChatEventListener(), this);
-		getServer().getPluginManager().registerEvents(new EntityDeathEventListener(this), this);
-		getServer().getPluginManager().registerEvents(new EntityDamageByEntityEventListener(this), this);
-		getServer().getPluginManager().registerEvents(new MoveEventListener(), this);
-		getServer().getPluginManager().registerEvents(new PlayerDropItemListener(), this);
-		getServer().getPluginManager().registerEvents(new PlayerPickupItemListener(), this);
+		PluginManager pluginManager = getServer().getPluginManager();
+		
+		pluginManager.registerEvents(new JoinEventListener(this), this);
+		pluginManager.registerEvents(new QuitEventListener(), this);
+		pluginManager.registerEvents(new DeathEventListener(this), this);
+		pluginManager.registerEvents(new ChatEventListener(), this);
+		pluginManager.registerEvents(new EntityDeathEventListener(this), this);
+		pluginManager.registerEvents(new EntityDamageByEntityEventListener(this), this);
+		pluginManager.registerEvents(new MoveEventListener(), this);
+		pluginManager.registerEvents(new PlayerDropItemListener(), this);
+		pluginManager.registerEvents(new PlayerPickupItemListener(), this);
+		pluginManager.registerEvents(new HungerChangeEventListener(), this);
 		
 		getCommand("info").setExecutor(new PlayerInfoCommand(this));
 		getCommand("region").setExecutor(new RegionCommand(this));
 		getCommand("npc").setExecutor(new NPCCommand(this));
 		getCommand("item").setExecutor(new ItemCommand(this));
+		getCommand("floor").setExecutor(new FloorCommand(this));
 		getCommand("clear").setExecutor(new ClearInventoryCommand());
 		getCommand("rank").setExecutor(new RankCommand());
 		getCommand("permissionlevel").setExecutor(new PermissionLevelCommand());
 		
+		// Order here is important! If floors aren't loaded first, then their worlds aren't loaded first, 
+		// and then constructing regions causes NPEs trying to access their worlds
+		((FloorLoader) GameObjectType.FLOOR.<Floor>getLoader()).lazyLoadAll();
 		((RegionLoader) GameObjectType.REGION.<Region>getLoader()).lazyLoadAll();
 		((NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader()).lazyLoadAll();
 		((ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader()).lazyLoadAll();
@@ -122,8 +134,6 @@ public class Dragons extends JavaPlugin {
 		Bukkit.getScheduler().runTaskTimer(this, () -> spawnEntityTask.run(), 0, serverOptions.getCustomSpawnRate());
 		
 		ProtocolLibrary.getProtocolManager().addPacketListener(new EntityMoveListener(this));
-		
-		//((RegionLoader)GameObjectType.REGION.getLoader()).loadAll();
 	}
 	
 	@Override

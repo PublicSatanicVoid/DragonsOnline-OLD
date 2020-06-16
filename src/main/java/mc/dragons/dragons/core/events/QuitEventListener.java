@@ -26,6 +26,7 @@ public class QuitEventListener implements Listener {
 	public void onPlayerQuit(PlayerQuitEvent event) {
 		User user = playerLoader.fromPlayer(event.getPlayer());
 		user.autoSave();
+		event.getPlayer().getInventory().clear(); // prevent item dupes by removing the "vanilla" item
 		playerLoader.removeStalePlayer(event.getPlayer());
 	}
 }

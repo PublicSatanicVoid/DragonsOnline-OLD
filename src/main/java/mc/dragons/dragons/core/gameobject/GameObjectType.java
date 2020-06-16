@@ -1,6 +1,7 @@
 package mc.dragons.dragons.core.gameobject;
 
 import mc.dragons.dragons.core.Dragons;
+import mc.dragons.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectLoader;
 import mc.dragons.dragons.core.gameobject.loader.ItemClassLoader;
 import mc.dragons.dragons.core.gameobject.loader.ItemLoader;
@@ -28,7 +29,8 @@ public enum GameObjectType {
  	NPC_CLASS(NPCClassLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
 	QUEST(QuestLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
 	STRUCTURE(StructureLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	REGION(RegionLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager()));
+	REGION(RegionLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
+	FLOOR(FloorLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager()));
 
 	private GameObjectLoader loader;
 	

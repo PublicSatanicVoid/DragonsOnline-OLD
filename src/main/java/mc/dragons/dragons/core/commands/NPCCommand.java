@@ -1,5 +1,8 @@
 package mc.dragons.dragons.core.commands;
 
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -60,6 +63,7 @@ public class NPCCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> level <Level>" + ChatColor.GRAY + " set NPC level");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> hostile <IsHostile>" + ChatColor.GRAY + " mark NPC as hostile or not");
 			sender.sendMessage(ChatColor.DARK_GRAY + " * Does not affect NPC pathfinding behavior (must be implemented programmatically)");
+			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> loot [<RegionName> <ItemClassName> <Chance%|DEL>]" + ChatColor.GRAY + " manage NPC class loot table");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -d <ClassName>" + ChatColor.GRAY + " delete NPC class");
 			sender.sendMessage(ChatColor.YELLOW + "/npc spawn <ClassName>" + ChatColor.GRAY + " spawn a new NPC of the given class");
 			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Class names must not contain spaces.");
@@ -140,6 +144,26 @@ public class NPCCommand implements CommandExecutor {
 				if(args[3].equalsIgnoreCase("hostile")) {
 					npcClass.setHostile(Boolean.valueOf(args[4]));
 					sender.sendMessage(ChatColor.GREEN + "Updated entity hostility successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("loot")) {
+					if(args.length == 4) {
+						sender.sendMessage(ChatColor.GREEN + "Loot Table:");
+						for(Entry<String, Map<String, Double>> regionLoot : npcClass.getLootTable().asMap().entrySet()) {
+							sender.sendMessage(ChatColor.GRAY + "- Region: " + regionLoot.getKey());
+							for(Entry<String, Double> itemLoot : regionLoot.getValue().entrySet()) {
+								sender.sendMessage(ChatColor.GRAY + "   - " + itemLoot.getKey() + ": " + itemLoot.getValue() + "%");
+							}
+						}
+						return true;
+					}
+					if(args[6].equalsIgnoreCase("del")) {
+						npcClass.deleteFromLootTable(args[4], args[5]);
+						sender.sendMessage(ChatColor.GREEN + "Removed from entity loot table successfully.");
+						return true;
+					}
+					npcClass.updateLootTable(args[4], args[5], Double.valueOf(args[6]));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity loot table successfully.");
 					return true;
 				}
 				return true;

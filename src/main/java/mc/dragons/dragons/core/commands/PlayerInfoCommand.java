@@ -10,7 +10,8 @@ import org.bukkit.entity.Player;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
-import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
+import mc.dragons.dragons.core.gameobject.floor.Floor;
+import mc.dragons.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.player.PermissionLevel;
@@ -23,12 +24,12 @@ import net.md_5.bungee.api.ChatColor;
 public class PlayerInfoCommand implements CommandExecutor {
 	private UserLoader playerLoader;
 	private RegionLoader regionLoader;
-	private GameObjectRegistry registry;
+	private FloorLoader floorLoader;
 	
 	public PlayerInfoCommand(Dragons instance) {
 		playerLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 		regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
-		registry = instance.getGameObjectRegistry();
+		floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
 	}
 	
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -71,16 +72,18 @@ public class PlayerInfoCommand implements CommandExecutor {
 		}
 		sender.sendMessage(ChatColor.YELLOW + "UUID: " + ChatColor.RESET + targetUser.getIdentifier().getUUID().toString());
 		sender.sendMessage(ChatColor.YELLOW + "XP: " + ChatColor.RESET + targetUser.getXP() + " [Level " + targetUser.getLevel() + "]");
-		sender.sendMessage(ChatColor.YELLOW + "Permission Level: " + ChatColor.RESET + targetUser.getPermissionLevel().toString());
-		sender.sendMessage(ChatColor.YELLOW + "Rank: " + ChatColor.RESET + targetUser.getRank().toString());
+		sender.sendMessage(ChatColor.YELLOW + "Permission Level: " + ChatColor.RESET + targetUser.getPermissionLevel().ordinal() + " (" + targetUser.getPermissionLevel().toString() + ")");
+		sender.sendMessage(ChatColor.YELLOW + "Rank: " + ChatColor.RESET + targetUser.getRank().getRankName());
 		if(targetPlayer == null) {
 			sender.sendMessage(ChatColor.YELLOW + "Cached Location: " + ChatColor.RESET + StringUtil.locToString(targetUser.getSavedLocation()) + " in " + targetUser.getSavedLocation().getWorld().getName());
+			sender.sendMessage(ChatColor.YELLOW + "Cached Floor: " + ChatColor.RESET + floorLoader.fromLocation(targetUser.getSavedLocation()).getDisplayName());
 			sender.sendMessage(ChatColor.YELLOW + "Cached Regions: " + ChatColor.RESET + regionLoader.getRegionsByLocationXZ(targetUser.getSavedLocation()).stream().map(r -> r.getName()).collect(Collectors.joining(", ")));
 			sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetUser.getSavedHealth() + " / " + targetUser.getSavedMaxHealth());
 		}
 		else {
 			sender.sendMessage(ChatColor.YELLOW + "Location: " + ChatColor.RESET + StringUtil.locToString(targetPlayer.getLocation()) + " in " + targetPlayer.getWorld().getName());
-			sender.sendMessage(ChatColor.YELLOW + "Regions: " + ChatColor.RESET + targetUser.getRegions().stream().map(r -> r.getName()).collect(Collectors.joining(", ")));
+			sender.sendMessage(ChatColor.YELLOW + "Floor: " + ChatColor.RESET + floorLoader.fromLocation(targetPlayer.getLocation()).getDisplayName());
+			sender.sendMessage(ChatColor.YELLOW + "Regions: " + ChatColor.RESET + targetUser.getRegions().stream().map(r -> r.getFlags().getString("fullname")).collect(Collectors.joining(", ")));
 			sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetPlayer.getHealth() + " / " + targetPlayer.getMaxHealth());
 		}
 		sender.sendMessage(ChatColor.YELLOW + "Skills: " + ChatColor.RESET + skills);

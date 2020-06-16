@@ -2,6 +2,8 @@ package mc.dragons.dragons.core.events;
 
 import java.util.List;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,6 +13,7 @@ import org.bukkit.metadata.MetadataValue;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.item.Item;
 import mc.dragons.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.dragons.core.gameobject.npc.NPC;
@@ -48,6 +51,12 @@ public class EntityDeathEventListener implements Listener {
 		registry.removeFromDatabase(npc);
 		
 		if(player == null) return;
+		
+		World world = npc.e().getWorld();
+		Location loc = npc.e().getLocation();
+		for(Item item : npc.getNPCClass().getLootTable().getDrops(loc)) {
+			world.dropItem(loc, item.getItemStack());
+		}
 		
 		int xpReward = getXPReward(user.getLevel(), npc.getLevel());
 		user.sendActionBar("+ " + ChatColor.GREEN + xpReward + " XP");

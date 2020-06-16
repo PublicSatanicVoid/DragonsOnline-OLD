@@ -1,5 +1,6 @@
 package mc.dragons.dragons.core.gameobject.npc;
 
+import org.bson.Document;
 import org.bukkit.entity.EntityType;
 
 import mc.dragons.dragons.core.gameobject.GameObject;
@@ -8,10 +9,36 @@ import mc.dragons.dragons.core.storage.StorageManager;
 
 public class NPCClass extends GameObject {
 	
+	private LootTable lootTable;
+	
 	public NPCClass(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
+		lootTable = new LootTable(this);
+	}
+	
+	public LootTable getLootTable() {
+		return lootTable;
+	}
+	
+	public void updateLootTable(String regionName, String itemName, double lootChancePercent) {
+		Document lootTableData = (Document) storageAccess.get("lootTable");
+		Document regionLoot = (Document) lootTableData.get(regionName);
+		if(regionLoot == null) {
+			lootTableData.append(regionName, new Document(itemName, lootChancePercent));
+			return;
+		}
+		regionLoot.append(itemName, lootChancePercent);
+		update(new Document("lootTable", lootTableData));
 	}
 
+	public void deleteFromLootTable(String regionName, String itemName) {
+		Document lootTableData = (Document) storageAccess.get("lootTable");
+		Document regionLoot = (Document) lootTableData.get(regionName);
+		if(regionLoot == null) return;
+		regionLoot.remove(itemName);
+		update(new Document("lootTable", lootTableData));
+	}
+	
 	public String getClassName() {
 		return (String) getData("className");
 	}

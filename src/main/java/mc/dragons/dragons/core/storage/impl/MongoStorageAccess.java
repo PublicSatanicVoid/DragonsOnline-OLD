@@ -24,11 +24,14 @@ public class MongoStorageAccess implements StorageAccess {
 	
 	public MongoStorageAccess(Identifier identifier, Document document, MongoCollection<Document> collection) {
 		this.identifier = identifier;
-		this.document = document;
+		this.document = document.append("type", identifier.getType().toString()).append("_id", identifier.getUUID());
 		this.collection = collection;
 	}
 
 	public void set(String key, Object value) {
+		if(key.equals("type") || key.equals("_id")) {
+			throw new IllegalArgumentException("Cannot modify type or UUID of storage access once instantiated");
+		}
 		document.append(key, value);
 		update(new Document(key, value));
 	}

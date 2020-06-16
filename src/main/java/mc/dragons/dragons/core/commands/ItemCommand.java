@@ -67,9 +67,9 @@ public class ItemCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> namecolor <Color>" + ChatColor.GRAY + " set item class display name color");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> lore <add <Lore>|remove <LineNo>]>" + ChatColor.GRAY + " view/edit item class lore");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> type|lvmin|cooldown|unbreakable|damage|armor <Value>" + ChatColor.GRAY + " edit item class data");
-			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> push" + ChatColor.GRAY + " update all items of this class with updated stats");
+			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> push" + ChatColor.GRAY + " update all items of this class with updated stats (will revert custom changes made to these items)");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -d <ItemClass>" + ChatColor.GRAY + " delete item class");
-			sender.sendMessage(ChatColor.YELLOW + "/item give <ItemClass>" + ChatColor.GRAY + " receive an item of the specified class7");
+			sender.sendMessage(ChatColor.YELLOW + "/item give <ItemClass>" + ChatColor.GRAY + " receive an item of the specified class");
 			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Class names must not contain spaces.");
 			return true;
 		}
@@ -214,7 +214,10 @@ public class ItemCommand implements CommandExecutor {
 				}
 				
 				if(args[3].equalsIgnoreCase("push")) {
-					storageManager.push(GameObjectType.ITEM, new Document("itemClass", itemClass.getClassName()), itemClass.getData());
+					Document update = new Document(itemClass.getData());
+					update.remove("_id");
+					update.remove("type");
+					storageManager.push(GameObjectType.ITEM, new Document("className", itemClass.getClassName()), update);
 					sender.sendMessage(ChatColor.GREEN + "Updated all items matching class " + itemClass.getClassName() + " in database.");
 					sender.sendMessage(ChatColor.GREEN + "Players must rejoin to receive the updated items.");
 					return true;

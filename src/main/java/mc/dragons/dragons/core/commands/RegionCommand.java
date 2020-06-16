@@ -86,7 +86,11 @@ public class RegionCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.GREEN + "Listing all regions:");
 			for(GameObject gameObject : plugin.getGameObjectRegistry().getRegisteredObjects(GameObjectType.REGION)) {
 				Region region = (Region) gameObject;
-				sender.sendMessage(ChatColor.GRAY + "- " + region.getName());
+				String floorData = "";
+				if(region.getFloor() != null) {
+					floorData = " (Floor: " + region.getFloor().getDisplayName() + ")";
+				}
+				sender.sendMessage(ChatColor.GRAY + "- " + region.getName() + floorData);
 			}
 		}
 		

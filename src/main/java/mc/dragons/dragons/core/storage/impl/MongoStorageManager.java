@@ -58,12 +58,12 @@ public class MongoStorageManager implements StorageManager {
 	}
 	
 	public StorageAccess getStorageAccess(GameObjectType objectType, Document search) {
-		UUID uuid = (UUID)search.get("_id");
 		FindIterable<Document> results = gameObjectCollection.find(search.append("type", objectType.toString()));
 		Document result = results.first();
 		if(result == null) {
 			return null;
 		}
+		UUID uuid = (UUID) result.get("_id");
 		Identifier identifier = new Identifier(objectType, uuid);
 		return new MongoStorageAccess(identifier, result, gameObjectCollection);
 	}
@@ -81,7 +81,7 @@ public class MongoStorageManager implements StorageManager {
 		
 		for(Document d : dbResults) {
 			Identifier id = new Identifier(GameObjectType.get(d.getString("type")),
-					(UUID)d.get("_id"));
+					(UUID) d.get("_id"));
 			result.add(new MongoStorageAccess(id, d, gameObjectCollection));
 		}
 		
@@ -105,7 +105,7 @@ public class MongoStorageManager implements StorageManager {
 
 	public StorageAccess getNewStorageAccess(GameObjectType objectType, Document initialData) {
 		Identifier identifier = new Identifier(objectType, initialData.containsKey("_id")
-				? (UUID)initialData.get("_id")
+				? (UUID) initialData.get("_id")
 				: UUID.randomUUID());
 		StorageAccess storageAccess = new MongoStorageAccess(identifier, initialData, gameObjectCollection);
 		Document insert = new Document(identifier.getDocument());

@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bson.Document;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -17,7 +18,9 @@ import org.bukkit.potion.PotionEffectType;
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
+import mc.dragons.dragons.core.gameobject.floor.Floor;
 import mc.dragons.dragons.core.gameobject.item.Item;
+import mc.dragons.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.dragons.core.gameobject.region.Region;
@@ -41,6 +44,7 @@ import mc.dragons.dragons.core.storage.StorageUtil;
 public class User extends GameObject {
 
 	private static RegionLoader regionLoader;
+	private static FloorLoader floorLoader;
 	
 	public static final double MIN_DISTANCE_TO_UPDATE_STATE = 2.0;
 	
@@ -49,7 +53,7 @@ public class User extends GameObject {
 	private Location cachedLocation;
 	
 	public static int calculateLevel(int xp) {
-		return (int) Math.floor(xp / 50000 + Math.sqrt(xp / 50)) + 1;
+		return (int) Math.floor(xp / 1_000_000 + Math.sqrt(xp / 100)) + 1;
 	}
 	
 	public static int calculateMaxHealth(int level) {
@@ -57,11 +61,12 @@ public class User extends GameObject {
 	}
 	
 	public User(Player player, StorageManager storageManager, StorageAccess storageAccess) {
-		super(GameObjectType.USER, 
-				(UUID)storageAccess.get("_id"), 
-				storageManager);
+		super(storageManager, storageAccess);
 		if(regionLoader == null) {
 			regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
+		}
+		if(floorLoader == null) {
+			floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
 		}
 		this.player = player;
 		if(player != null) {
@@ -71,6 +76,7 @@ public class User extends GameObject {
 				player.setHealth((double) getData("health"));
 			}
 		}
+		@SuppressWarnings("unchecked")
 		List<UUID> inventory = (List<UUID>) getData("inventory");
 		for(UUID uuid : inventory) {
 			Item item = ((ItemLoader) GameObjectType.ITEM.<Item>getLoader()).loadObject(uuid);
@@ -82,6 +88,23 @@ public class User extends GameObject {
 	
 	private void updateState() {
 		Set<Region> regions = regionLoader.getRegionsByLocationXZ(player.getLocation());
+		
+		if(cachedLocation != null) {
+			if(cachedLocation.getWorld() != player.getLocation().getWorld()) {
+				Floor floor = floorLoader.fromWorldName(player.getLocation().getWorld().getName());
+				cachedLocation = player.getLocation();
+				cachedRegions = regions;
+				if(floor == null) {
+					sendActionBar(ChatColor.DARK_RED + "- Unofficial World -");
+					player.sendMessage(ChatColor.RED + "WARNING: This is an unofficial world and is not associated with a floor.");
+				}
+				else {
+					player.sendMessage(ChatColor.GRAY + "Floor " + floor.getLevelMin() + ": " + floor.getDisplayName());
+					sendTitle(ChatColor.DARK_GRAY, "Floor " + floor.getLevelMin(), ChatColor.GRAY, floor.getDisplayName());
+				}
+				return;
+			}
+		}
 		
 		// Find newly left regions
 		for(Region region : cachedRegions) {
@@ -123,6 +146,7 @@ public class User extends GameObject {
 			player.getInventory().addItem(item.getItemStack());
 		}
 		if(updateDB) {
+			@SuppressWarnings("unchecked")
 			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
 			inventory.add(item.getUUID());
 			storageAccess.update(new Document("inventory", inventory));
@@ -139,6 +163,7 @@ public class User extends GameObject {
 	public void takeItem(Item item, boolean updateDB) {
 		player.getInventory().remove(item.getItemStack());
 		if(updateDB) {
+			@SuppressWarnings("unchecked")
 			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
 			inventory.remove(item.getUUID());
 			storageAccess.update(new Document("inventory", inventory));
@@ -154,6 +179,10 @@ public class User extends GameObject {
 		setData("lastJoined", System.currentTimeMillis());
 		player.sendMessage(ChatColor.GOLD + "Hello " + player.getName() + " and welcome to Dragons.");
 		player.sendMessage(ChatColor.YELLOW + "Your level is " + getData("level") + " [" + getData("xp") + " XP]");
+		if(getRank().ordinal() >= Rank.PATRON.ordinal()) {
+			Bukkit.broadcastMessage(getRank().getNameColor() + getRank().getRankName() + " " + player.getName() + " joined!");
+		}
+		updateState();
 	}
 	
 	public void handleMove() {
@@ -161,9 +190,14 @@ public class User extends GameObject {
 		if(cachedLocation == null) {
 			cachedLocation = player.getLocation();
 		}
-		else { // avoid NPEs when cachedLocation is null
-			if(player.getLocation().distanceSquared(cachedLocation) >= MIN_DISTANCE_TO_UPDATE_STATE * MIN_DISTANCE_TO_UPDATE_STATE) {
+		else { // avoid NPEs when cachedLocation is null - do not roll up to else if!
+			if(player.getLocation().getWorld() != cachedLocation.getWorld()) {
 				update = true;
+			}
+			else { // avoid IAEs when the worlds don't match - do not roll up to else if!
+				if(player.getLocation().distanceSquared(cachedLocation) >= MIN_DISTANCE_TO_UPDATE_STATE * MIN_DISTANCE_TO_UPDATE_STATE) {
+					update = true;
+				}
 			}
 		}
 		if(update) {
@@ -228,6 +262,11 @@ public class User extends GameObject {
 	
 	public void respawn() {
 		Dragons.getInstance().getBridge().respawnPlayer(player);
+	}
+	
+	public void sendToFloor(String floorName) {
+		Floor floor = floorLoader.fromFloorName(floorName);
+		player.teleport(floor.getWorld().getSpawnLocation());
 	}
 	
 	public void addXP(int xp) {
@@ -332,7 +371,7 @@ public class User extends GameObject {
 		double progress = skillProgress.getDouble(type.toString()) + increment;
 		int level = getSkillLevel(type);
 		skillProgress.append(type.toString(), progress);
-		if(progress >= 10 * (level + 1)) {
+		if(progress >= 30 * (level + 1)) {
 			setSkillLevel(type, level + 1);
 			sendTitle(ChatColor.DARK_GREEN, type.getFriendlyName() + " Increased!", ChatColor.GREEN, level + " >>> " + (level + 1));
 		}

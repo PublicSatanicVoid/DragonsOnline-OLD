@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObjectType;
@@ -67,14 +68,15 @@ public class EntityDamageByEntityEventListener implements Listener {
 				BukkitRunnable runnable = new BukkitRunnable() {
 					@Override
 					public void run() {
+						Item currentHeldItem = itemLoader.getItemByItemStack(fUserDamager.p().getItemInHand());
+						if(currentHeldItem == null) return;
+						if(!currentHeldItem.equals(heldItem)) return;
+						fUserDamager.sendActionBar(heldItem.getDecoratedName() + " " + ProgressBarUtil.getCountdownBar(heldItem.getCooldownRemaining() / heldItem.getCooldown()));
 						if(!heldItem.hasCooldownRemaining()) {
-							fUserDamager.sendActionBar(heldItem.getDecoratedName() + ChatColor.GREEN + " RECHARGED");
+							//fUserDamager.sendActionBar(heldItem.getDecoratedName() + ChatColor.GREEN + " RECHARGED");
 							this.cancel();
 							return;
 						}
-						Item currentHeldItem = itemLoader.getItemByItemStack(fUserDamager.p().getItemInHand());
-						if(!currentHeldItem.equals(heldItem)) return;
-						fUserDamager.sendActionBar(heldItem.getDecoratedName() + " " + ProgressBarUtil.getCountdownBar(heldItem.getCooldownRemaining() / heldItem.getCooldown()));
 					}
 				};
 				runnable.runTaskTimer(plugin, 0, 5);
@@ -95,13 +97,17 @@ public class EntityDamageByEntityEventListener implements Listener {
 		Set<Region> regions = regionLoader.getRegionsByLocationXZ(target.getLocation());
 		
 		if(target instanceof Player) {
-			if(userDamager == null && npcDamager != null) { // player was damaged by entity
-				event.setDamage(event.getDamage() + 1.2 * npcDamager.getLevel());
+			if(userDamager == null && npcDamager != null) { // player was damaged by NPC
+				event.setDamage(0.5 * npcDamager.getLevel());
 			}
 			else if(userDamager != null) {
 				event.setDamage(event.getDamage() + Math.random() * userDamager.getSkillLevel(SkillType.MELEE));
 			}
 			User user = playerLoader.fromPlayer((Player) target);
+			if(user.hasDeathCountdown()) { // Can't damage a respawning player
+				event.setCancelled(true);
+				return;
+			}
 			ItemStack targetHeldItemStack = ((Player) target).getItemInHand();
 			Item targetHeldItem = itemLoader.getItemByItemStack(targetHeldItemStack);
 			double armor = 0.0;
@@ -134,6 +140,10 @@ public class EntityDamageByEntityEventListener implements Listener {
 			}
 		}
 		else if(npcTarget != null) { // PVE
+			if(!npcTarget.isHostile()) {
+				event.setCancelled(true);
+				return;
+			}
 			if(event.getDamager() instanceof Player) {
 				for(Region region : regions) {
 					if(!Boolean.valueOf(region.getFlags().getString("pve"))) {

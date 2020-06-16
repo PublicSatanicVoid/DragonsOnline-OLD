@@ -1,10 +1,13 @@
 package mc.dragons.dragons.core.gameobject.loader;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.bson.Document;
 import org.bukkit.Location;
+import org.bukkit.World;
 
 import mc.dragons.dragons.core.Dragons;
 import mc.dragons.dragons.core.gameobject.GameObject;
@@ -19,11 +22,13 @@ public class RegionLoader extends GameObjectLoader<Region> {
 	private static RegionLoader INSTANCE;
 	private boolean allLoaded = false;
 	private GameObjectRegistry masterRegistry;
+	private Map<String, Set<Region>> worldToRegions;
 	
 	private RegionLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
 		//loadAll(); // Apparently when we do this it thinks that GameObjectType.REGION is null until construction is completed. So we need to move this out of constructor. Grr lazy loading
 		masterRegistry = instance.getGameObjectRegistry();
+		worldToRegions = new HashMap<>();
 	}
 	
 	public synchronized static RegionLoader getInstance(Dragons instance, StorageManager storageManager) {
@@ -50,11 +55,18 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		return null;
 	}
 	
+	public Set<Region> getRegionsByWorld(World world) {
+		return getRegionsByWorld(world.getName());
+	}
+	
+	public Set<Region> getRegionsByWorld(String worldName) {
+		return worldToRegions.getOrDefault(worldName, new HashSet<>());
+	}
+	
 	public Set<Region> getRegionsByLocation(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
-		for(GameObject gameObject : masterRegistry.getRegisteredObjects(GameObjectType.REGION)) {
-			Region region = (Region) gameObject;
+		for(Region region : getRegionsByWorld(loc.getWorld())) {
 			if(region.contains(loc)) {
 				result.add(region);
 			}
@@ -65,8 +77,7 @@ public class RegionLoader extends GameObjectLoader<Region> {
 	public Set<Region> getRegionsByLocationXZ(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
-		for(GameObject gameObject : masterRegistry.getRegisteredObjects(GameObjectType.REGION)) {
-			Region region = (Region) gameObject;
+		for(Region region : getRegionsByWorld(loc.getWorld())) {
 			if(region.containsXZ(loc)) {
 				result.add(region);
 			}
@@ -89,6 +100,9 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		storageAccess.set("spawnRates", new Document());
 		Region region = new Region(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(region);
+		Set<Region> regions = worldToRegions.getOrDefault(region.getWorld().getName(), new HashSet<>());
+		regions.add(region);
+		worldToRegions.put(region.getWorld().getName(), regions); // in case there wasn't an existing mapping
 		return region;
 	}
 	
@@ -97,7 +111,11 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		allLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.REGION);
 		storageManager.getAllStorageAccess(GameObjectType.REGION).stream().forEach((storageAccess) -> {
-			masterRegistry.getRegisteredObjects().add(loadObject(storageAccess));	
+			Region region = loadObject(storageAccess);
+			masterRegistry.getRegisteredObjects().add(region);
+			Set<Region> regions = worldToRegions.getOrDefault(region.getWorld().getName(), new HashSet<>());
+			regions.add(region);
+			worldToRegions.put(region.getWorld().getName(), regions); // in case there wasn't an existing mapping
 		});
 	}
 	

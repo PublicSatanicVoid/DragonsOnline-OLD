@@ -57,7 +57,8 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 				.append("entityType", entityType.toString())
 				.append("maxHealth", maxHealth)
 				.append("level", level)
-				.append("hostile", hostile);
+				.append("hostile", hostile)
+				.append("lootTable", new Document());
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC_CLASS, data);
 		NPCClass npcClass = new NPCClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(npcClass);

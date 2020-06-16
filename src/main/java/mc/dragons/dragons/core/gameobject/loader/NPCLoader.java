@@ -70,7 +70,8 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 				.append("maxHealth", maxHealth)
 				.append("lastLocation", StorageUtil.locToDoc(entity.getLocation()))
 				.append("level", level)
-				.append("hostile", hostile);
+				.append("hostile", hostile)
+				.append("lootTable", new Document());
 		// TODO: enforce hostile/non-hostile behavior???
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC, data);
 		NPC npc = new NPC(entity, storageManager, storageAccess);

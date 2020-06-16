@@ -36,7 +36,7 @@ public class ClearInventoryCommand implements CommandExecutor {
 		else {
 			if(args[0].equalsIgnoreCase("confirm")) {
 				user.clearInventory();
-				player.sendMessage(ChatColor.GREEN + " Cleared your inventory.");
+				player.sendMessage(ChatColor.GREEN + "Cleared your inventory.");
 				return true;
 			}
 		}
