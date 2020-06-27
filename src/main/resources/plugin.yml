@@ -1,34 +1,52 @@
 name: Dragons
-main: mc.dragons.dragons.core.Dragons
+main: mc.dragons.core.Dragons
 version: 1.0.0
 author: DragonRider747
 depend: [ProtocolLib]
 loadbefore: [WorldEdit]
 commands:
-  dragons:
-    description: DRAGONS
-  party:
-    description: Create, join, and manage parties.
-    aliases: /p
-  friend:
-    description: Add, accept, and manage friends.
-    aliases: /f
-  item:
-    description: (GM) Manage items..
-  floor:
-    description: (GM) Manage floors.
-  quest:
-    description: (GM) Manage quests.
-    aliases: /q
-  npc:
-    description: (GM) Manage NPCs.
-  info:
-    description: (GM) View a player's information.
-  region:
-    description: (GM) Manage regions.
   clear:
     description: Clear your inventory. This cannot be undone.
+  dragons:
+    description: DRAGONS
+  friend:
+    description: Add, accept, and manage friends.
+  party:
+    description: Create, join, and manage parties.
+    aliases: p
+    aliases: f
+  relore:
+    description: Change the lore of your held item. Requires blacksmithing level 40+ and costs 100 Gold per use. (Bypassed by MOD permission level)
+  rename:
+    description: Rename your held item. Requires blacksmithing level 20+ and costs 50 Gold per use. (Bypassed by MOD permission level)
+  syslogon:
+    description: Log on to system console.
+    aliases: syslogin
+  bypassdeathcountdown:
+    description: (TESTER) Skip the death countdown and respawn instantly.
+  testquest:
+    description: (TESTER) Force-begin a quest.
+  godmode:
+    description: (MOD) Toggle God Mode.
+    aliases: god
+  info:
+    description: (MOD) View a player's information.
+  floor:
+    description: (GM) Manage floors.
+  item:
+    description: (GM) Manage items.
+    aliases: i
+  npc:
+    description: (GM) Manage NPCs.
+  quest:
+    description: (GM) Manage quests.
+    aliases: q
+  region:
+    description: (GM) Manage regions.
+    aliases: r
+  restat:
+    description: (GM) Change the stats of your held item.
   rank:
-    description: (GM) Set player rank.
-  permissionlevel:
-    description: (SYSOP) Set player permission level
+    description: (ADMIN) Set a player's rank.
+  verifygameintegrity:
+    description: (ADMIN) Verify integrity of active game environment.
