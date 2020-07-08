@@ -27,6 +27,14 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <relocations>
+            <relocation>
+              <pattern>de.tr7zw.changeme.nbtapi</pattern>
+              <shadedPattern>mc.dragons.shaded.nbtapi</shadedPattern>
+            </relocation>
+          </relocations>
+        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -38,6 +46,14 @@
     <repository>
       <id>spigot-repo</id>
       <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+    </repository>
+    <repository>
+      <id>codemc-repo</id>
+      <url>https://repo.codemc.org/repository/maven-public/</url>
+    </repository>
+    <repository>
+      <id>destroystokyo-releases</id>
+      <url>https://repo.destroystokyo.com/repository/maven-releases/</url>
     </repository>
   </repositories>
   <dependencies>
