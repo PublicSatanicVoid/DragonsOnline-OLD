@@ -13,6 +13,7 @@ public enum PermissionLevel {
 	
 	USER,
 	TESTER,
+	BUILDER,
 	MOD,
 	GM,
 	ADMIN,

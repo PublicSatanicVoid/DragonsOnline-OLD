@@ -25,18 +25,15 @@ public class SystemLogonCommand implements CommandExecutor {
 
 	
 		if(args.length == 0) {
+			sender.sendMessage(ChatColor.GREEN + "System Logon Service");
 			if(sender instanceof Player) {
-				sender.sendMessage(ChatColor.GREEN + "System Logon Service");
 				sender.sendMessage(ChatColor.YELLOW + "/syslogon <profile> <password>");
 				sender.sendMessage(ChatColor.YELLOW + "/syslogon -p <new permission level>");
-				sender.sendMessage(ChatColor.YELLOW + "/syslogon -c <new profile> <password> <permission level>");
 				sender.sendMessage(ChatColor.YELLOW + "/syslogon -logout");
-				sender.sendMessage(ChatColor.DARK_GRAY + "Note: Profiles and passwords cannot contain spaces.");
 			}
-			else {
-				sender.sendMessage(ChatColor.YELLOW + "/syslogon -c <new profile> <password> <level>");
-				sender.sendMessage(ChatColor.DARK_GRAY + "Note: Profiles and passwords cannot contain spaces.");
-			}
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -c <new profile> <password> <max. permission level>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -u <profile> <new max. permission level>");
+			sender.sendMessage(ChatColor.DARK_GRAY + "Note: Profiles and passwords cannot contain spaces.");
 			return true;
 		}
 		
@@ -48,6 +45,17 @@ public class SystemLogonCommand implements CommandExecutor {
 			}
 			SystemProfileLoader.createProfile(args[1], args[2], PermissionLevel.valueOf(args[3]));
 			sender.sendMessage(ChatColor.GREEN + "Created system profile successfully.");
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-u")) {
+			if(sender instanceof Player) {
+				Player player = (Player) sender;
+				User user = UserLoader.fromPlayer(player);
+				if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.SYSOP, true)) return true;
+			}
+			SystemProfileLoader.setProfileMaxPermissionLevel(args[1], PermissionLevel.valueOf(args[2]));
+			sender.sendMessage(ChatColor.GREEN + "Updated system profile successfully.");
 			return true;
 		}
 		
@@ -98,8 +106,9 @@ public class SystemLogonCommand implements CommandExecutor {
 			return true;
 		}
 		user.setSystemProfile(profile);
-		
-		sender.sendMessage(ChatColor.GREEN + "Logged on to system console as ~" + profile.getProfileName());
+		user.setActivePermissionLevel(profile.getMaxPermissionLevel());
+
+		sender.sendMessage(ChatColor.GREEN + "Logged on to system console as " + profile.getProfileName() + ". Permission level: " + profile.getMaxPermissionLevel().toString());
 		
 		
 		

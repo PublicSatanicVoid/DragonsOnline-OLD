@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bson.Document;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import mc.dragons.core.Dragons;
@@ -36,11 +37,22 @@ public class UserLoader extends GameObjectLoader<User> {
 		return INSTANCE;
 	}
 	
+	public static User fixUser(User user) {
+		Player oldPlayer = user.getPlayer();
+		Player newPlayer = Bukkit.getPlayerExact(user.getName());
+		if(oldPlayer != newPlayer) {
+			playerToUser.remove(oldPlayer);
+			user.initialize(newPlayer);
+			playerToUser.put(newPlayer, user);
+		}
+		return user;
+	}
+	
 	@Override
 	public User loadObject(StorageAccess storageAccess) {
 		for(User user : playerToUser.values()) {
 			if(user.getIdentifier().equals(storageAccess.getIdentifier())) {
-				return user;
+				return fixUser(user);
 			}
 		}
 		Player p = plugin.getServer().getPlayer((UUID)storageAccess.get("_id"));
@@ -53,7 +65,7 @@ public class UserLoader extends GameObjectLoader<User> {
 	public User loadObject(UUID uuid) {
 		for(User user : playerToUser.values()) {
 			if(user.getUUID().equals(uuid)) {
-				return user;
+				return fixUser(user);
 			}
 		}
 		StorageAccess storageAccess = storageManager.getStorageAccess(GameObjectType.USER, uuid);
@@ -63,9 +75,8 @@ public class UserLoader extends GameObjectLoader<User> {
 	
 	public User loadObject(String username) {
 		for(User user : playerToUser.values()) {
-			if(user.p() == null) continue;
-			if(user.p().getName().equalsIgnoreCase(username)) {
-				return user;
+			if(user.getName().equalsIgnoreCase(username)) {
+				return fixUser(user);
 			}
 		}
 		StorageAccess storageAccess = storageManager.getStorageAccess(GameObjectType.USER, new Document("username", username));
@@ -92,7 +103,9 @@ public class UserLoader extends GameObjectLoader<User> {
 				.append("skills", skills)
 				.append("skillProgress", skillProgress)
 				.append("inventory", new ArrayList<>())
-				.append("quests", new Document());
+				.append("quests", new Document())
+				.append("vanished", false)
+				.append("punishmentHistory", new ArrayList<>());
 		// TODO: continue init
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.USER, data);
 		User user = new User(player, storageManager, storageAccess);
@@ -112,7 +125,7 @@ public class UserLoader extends GameObjectLoader<User> {
 	
 	public void unregister(User user) {
 		masterRegistry.getRegisteredObjects().remove(user);
-		playerToUser.remove(user.p());
+		playerToUser.remove(user.getPlayer());
 	}
 	
 }

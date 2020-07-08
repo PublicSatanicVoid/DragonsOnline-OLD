@@ -3,6 +3,7 @@ package mc.dragons.core.gameobject.floor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
@@ -25,10 +26,14 @@ import mc.dragons.core.storage.StorageManager;
  */
 public class Floor extends GameObject {
 	
-	public Floor(StorageManager storageManager, StorageAccess storageAccess) {
+	public Floor(StorageManager storageManager, StorageAccess storageAccess, boolean superflat) {
 		super(storageManager, storageAccess);
 		Dragons.getInstance().getLogger().info("Loading floor " + getFloorName() + " [" + getWorldName() + "]");
-		World world = Bukkit.createWorld(WorldCreator.name(getWorldName()));
+		WorldCreator creator = WorldCreator.name(getWorldName());
+		if(superflat) {
+			creator.type(WorldType.FLAT);
+		}
+		World world = Bukkit.createWorld(creator);
 		world.setGameRuleValue("doMobSpawning", "false");
 		world.setGameRuleValue("doEntityDrops", "false");
 		world.setGameRuleValue("doMobLoot", "false");

@@ -15,7 +15,9 @@ import org.bukkit.entity.Player;
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.GameObjectType;
+import mc.dragons.core.gameobject.item.ItemClass;
 import mc.dragons.core.gameobject.loader.GameObjectRegistry;
+import mc.dragons.core.gameobject.loader.ItemClassLoader;
 import mc.dragons.core.gameobject.loader.NPCClassLoader;
 import mc.dragons.core.gameobject.loader.QuestLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
@@ -36,6 +38,7 @@ import mc.dragons.core.util.StringUtil;
 public class QuestCommand implements CommandExecutor {
 	private QuestLoader questLoader;
 	private NPCClassLoader npcClassLoader;
+	private ItemClassLoader itemClassLoader;
 	private RegionLoader regionLoader;
 	//private UserLoader userLoader;
 	private GameObjectRegistry registry;
@@ -43,6 +46,7 @@ public class QuestCommand implements CommandExecutor {
 	public QuestCommand(Dragons instance) {
 		questLoader = (QuestLoader) GameObjectType.QUEST.<Quest>getLoader();
 		npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
+		itemClassLoader = (ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader();
 		regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 		//userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 		registry = instance.getGameObjectRegistry();
@@ -74,9 +78,9 @@ public class QuestCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/quest -s <ShortName> stage <Stage#> name <QuestStageName>" + ChatColor.GRAY + " set name of quest stage");
 			sender.sendMessage(ChatColor.YELLOW + "/quest -s <ShortName> stage <add|<Stage#> trigger> <TriggerType> [TriggerParam]" + ChatColor.GRAY + " update quest stage trigger");
 			sender.sendMessage(ChatColor.YELLOW + "/quest -s <ShortName> stage <Stage#> action "
-					+ "<add <ActionType> [ActionParams... ]|"
+					+ "<add <ActionType> [ActionParams...]|"
 					+ "dialogue add <Action#> <Message>|"
-					+ "branch add <Action#> <TriggerType> <TriggerParam|NONE> <GoToStage#>|"
+					+ "branch add <Action#> <GoToStage#> <TriggerType> [TriggerParams...]|"
 					+ "del <Action#>>" + ChatColor.GRAY + " manage quest stage actions");
 			sender.sendMessage(ChatColor.YELLOW + "/quest -s <ShortName> stage <Stage#> del" + ChatColor.GRAY + " delete quest stage");
 			sender.sendMessage(ChatColor.YELLOW + "/quest -d <ShortName>" + ChatColor.GRAY + " delete quest");
@@ -169,7 +173,7 @@ public class QuestCommand implements CommandExecutor {
 							.collect(Collectors.joining(", ")));
 						return true;
 					}
-					QuestStep step = new QuestStep("Unnamed Step", makeTrigger(type, args.length > 5 ? args[5] : null), new ArrayList<>(), quest);
+					QuestStep step = new QuestStep("Unnamed Step", makeTrigger(type, args.length > 5 ? Arrays.copyOfRange(args, 5, args.length) : null), new ArrayList<>(), quest);
 					quest.addStep(step);
 					sender.sendMessage(ChatColor.GREEN + "Added new quest stage successfully.");
 					return true;
@@ -218,9 +222,12 @@ public class QuestCommand implements CommandExecutor {
 					if(args.length == 5) {
 						sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add TELEPORT_PLAYER");
-						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add SPAWN_NPC <NpcClass>");
+						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add SPAWN_NPC <NpcClass> [NpcReferenceName]");
+						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add TELEPORT_NPC <NpcReferenceName>");
+						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add PATHFIND_NPC <NpcReferenceName> [GotoStage#WhenComplete]");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add BEGIN_DIALOGUE <NpcClass>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add GIVE_XP <XPAmount>");
+						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add <GIVE_ITEM|TAKE_ITEM> <ItemClass> <Amount>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action dialogue add <Action#> <Dialogue>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action branch add <TriggerType> <TriggerParam|NONE> <GoToStage#>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action del <Action#>");
@@ -228,10 +235,16 @@ public class QuestCommand implements CommandExecutor {
 					}
 					if(args[5].equalsIgnoreCase("add")) {
 						if(args[6].equalsIgnoreCase("TELEPORT_PLAYER") || args[6].equalsIgnoreCase("TeleportPlayer")) {
-							step.addAction(QuestAction.teleportPlayerAction(quest, user.p().getLocation()));
+							step.addAction(QuestAction.teleportPlayerAction(quest, user.getPlayer().getLocation()));
 						}
 						else if(args[6].equalsIgnoreCase("SPAWN_NPC") || args[6].equalsIgnoreCase("SpawnNPC")) {
-							step.addAction(QuestAction.spawnNPCAction(quest, npcClassLoader.getNPCClassByClassName(args[7])));
+							step.addAction(QuestAction.spawnNPCAction(quest, npcClassLoader.getNPCClassByClassName(args[7]), args.length == 8 ? "" : args[8]));
+						}
+						else if(args[6].equalsIgnoreCase("TELEPORT_NPC") || args[6].equalsIgnoreCase("TeleportNPC")) {
+							step.addAction(QuestAction.teleportNPCAction(quest, args[7], user.getPlayer().getLocation()));
+						}
+						else if(args[6].equalsIgnoreCase("PATHFIND_NPC") || args[6].equalsIgnoreCase("PathfindNPC")) {
+							step.addAction(QuestAction.pathfindNPCAction(quest, args[7], user.getPlayer().getLocation(), args.length == 8 ? -1 : Integer.valueOf(args[8])));
 						}
 						else if(args[6].equalsIgnoreCase("BEGIN_DIALOGUE") || args[6].equalsIgnoreCase("BeginDialogue")) {
 							step.addAction(QuestAction.beginDialogueAction(quest, npcClassLoader.getNPCClassByClassName(args[7]), new ArrayList<>()));
@@ -241,6 +254,12 @@ public class QuestCommand implements CommandExecutor {
 						}
 						else if(args[6].equalsIgnoreCase("GOTO_STAGE") || args[6].equalsIgnoreCase("GoToStage")) {
 							step.addAction(QuestAction.goToStageAction(quest, Integer.valueOf(args[7])));
+						}
+						else if(args[6].equalsIgnoreCase("TAKE_ITEM") || args[6].equalsIgnoreCase("TakeItem")) {
+							step.addAction(QuestAction.takeItemAction(quest, itemClassLoader.getItemClassByClassName(args[7]), args.length == 8 ? 1 : Integer.valueOf(args[8])));
+						}
+						else if(args[6].equalsIgnoreCase("GIVE_ITEM") || args[6].equalsIgnoreCase("GiveItem")) {
+							step.addAction(QuestAction.giveItemAction(quest, itemClassLoader.getItemClassByClassName(args[7]), args.length == 8 ? 1 : Integer.valueOf(args[8])));
 						}
 						else {
 							sender.sendMessage(ChatColor.RED + "Invalid action type! Valid action types are " + Arrays.asList(QuestActionType.values())
@@ -261,8 +280,8 @@ public class QuestCommand implements CommandExecutor {
 					}
 					if(args[5].equalsIgnoreCase("branch")) {
 						if(args[6].equalsIgnoreCase("add")) {
-							QuestTrigger trigger = makeTrigger(TriggerType.valueOf(args[7]), args[8]);
-							QuestAction action = QuestAction.goToStageAction(quest, Integer.valueOf(args[9]));
+							QuestTrigger trigger = makeTrigger(TriggerType.valueOf(args[8]), Arrays.copyOfRange(args, 9, args.length));
+							QuestAction action = QuestAction.goToStageAction(quest, Integer.valueOf(args[7]));
 							step.addBranchPoint(trigger, action);
 							sender.sendMessage(ChatColor.GREEN + "Added branch point successfully.");
 							return true;
@@ -299,6 +318,8 @@ public class QuestCommand implements CommandExecutor {
 		switch(type) {
 		case INSTANT:
 			return QuestTrigger.instant();
+		case NEVER:
+			return QuestTrigger.never();
 		case KILL_NPC:
 			return QuestTrigger.onKillNPC(npcClassLoader.getNPCClassByClassName(params[0]));
 		case CLICK_NPC:
@@ -309,6 +330,8 @@ public class QuestCommand implements CommandExecutor {
 			return QuestTrigger.onExitRegion(regionLoader.getRegionByName(params[0]));
 		case BRANCH_CONDITIONAL:
 			return QuestTrigger.branchConditional(new HashMap<>());
+		case HAS_ITEM:
+			return QuestTrigger.hasItem(itemClassLoader.getItemClassByClassName(params[0]), Integer.valueOf(params[1]));
 		}
 		return null;
 	}
@@ -317,6 +340,8 @@ public class QuestCommand implements CommandExecutor {
 		switch(trigger.getTriggerType()) {
 		case INSTANT:
 			return "Triggered immediately";
+		case NEVER:
+			return "Never triggered (limbo)";
 		case KILL_NPC:
 		case CLICK_NPC:
 			return "Target NPC Class: " + ChatColor.GREEN + trigger.getNPCClass().getName() + " (" + trigger.getNPCClass().getClassName() + ")";
@@ -330,6 +355,10 @@ public class QuestCommand implements CommandExecutor {
 						+ " -> " + conditional.getValue().getActionType().toString() + " (" + displayAction(conditional.getValue()) + ChatColor.GRAY + ")";
 			}
 			return triggerMsg;
+		case HAS_ITEM:
+			return "Triggered immediately once player has " + ChatColor.GREEN + trigger.getQuantity() + ChatColor.GRAY + " of " + ChatColor.GREEN + trigger.getItemClass().getClassName();
+		default:
+			break;
 		}
 		return "";
 	}
@@ -339,7 +368,15 @@ public class QuestCommand implements CommandExecutor {
 		case TELEPORT_PLAYER:
 			return "Target Location: " + ChatColor.GREEN + StringUtil.locToString(action.getLocation());
 		case SPAWN_NPC:
-			return "Target NPC Class: " + ChatColor.GREEN + action.getNPCClass().getName() + " (" + action.getNPCClass().getClassName() + ")";
+			return "Target NPC Class: " + ChatColor.GREEN + action.getNPCClass().getName() + " (" + action.getNPCClass().getClassName() + ")\n"
+					+ ChatColor.GRAY + (action.getNPCReferenceName() == null ? "    - No reference name" : "    - Reference name: " + ChatColor.GREEN + action.getNPCReferenceName());
+		case TELEPORT_NPC:
+			return "NPC Reference Name: " + ChatColor.GREEN + action.getNPCReferenceName() + "\n"
+					+ ChatColor.GRAY + "    - To: " + ChatColor.GREEN + StringUtil.locToString(action.getLocation());
+		case PATHFIND_NPC:
+			return "NPC Reference Name: " + ChatColor.GREEN + action.getNPCReferenceName() + "\n"
+					+ ChatColor.GRAY + "    - To: " + ChatColor.GREEN + StringUtil.locToString(action.getLocation()) + "\n"
+					+ ChatColor.GRAY + (action.getGotoStage() == -1 ? "    - No special behavior upon completion" : "    - On completion: " + ChatColor.GREEN + "Go to stage " + action.getGotoStage());
 		case BEGIN_DIALOGUE:
 			String actionMsg = "Spoken By: " + ChatColor.GREEN + action.getNPCClass().getName() + " (" + action.getNPCClass().getClassName() + ")\n"
 				+ ChatColor.GRAY + "    - Dialogue:";
@@ -353,6 +390,9 @@ public class QuestCommand implements CommandExecutor {
 			return ChatColor.GRAY + "Amount: " + ChatColor.GREEN + action.getXPAmount();
 		case GOTO_STAGE:
 			return ChatColor.GRAY + "Stage: " + ChatColor.GREEN + action.getGotoStage();
+		case TAKE_ITEM:
+		case GIVE_ITEM:
+			return ChatColor.GRAY + "Item Class: " + ChatColor.GREEN + action.getItemClass().getClassName() + ChatColor.GRAY + "; Amount: " + ChatColor.GREEN + action.getQuantity();
 		}
 		return "";
 	}

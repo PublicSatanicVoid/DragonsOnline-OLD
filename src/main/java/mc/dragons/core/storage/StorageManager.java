@@ -20,6 +20,7 @@ public interface StorageManager {
 	public StorageAccess getStorageAccess(GameObjectType objectType, Document search);
 	
 	public Set<StorageAccess> getAllStorageAccess(GameObjectType objectType);
+	public Set<StorageAccess> getAllStorageAccess(GameObjectType objectType, Document filter);
 	
 	public StorageAccess getNewStorageAccess(GameObjectType objectType);
 	public StorageAccess getNewStorageAccess(GameObjectType objectType, UUID objectUUID);

@@ -9,7 +9,7 @@ public class PermissionUtil {
 	public static boolean verifyActivePermissionLevel(User user, PermissionLevel required, boolean notify) {
 		if(user.getActivePermissionLevel().ordinal() < required.ordinal()) {
 			if(notify) {
-				user.p().sendMessage(ChatColor.RED + "This requires permission level " + required.toString());
+				user.getPlayer().sendMessage(ChatColor.RED + "This requires permission level " + required.toString());
 			}
 			return false;
 		}

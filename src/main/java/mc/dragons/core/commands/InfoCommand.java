@@ -3,6 +3,7 @@ package mc.dragons.core.commands;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,9 +19,10 @@ import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.SkillType;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.gameobject.user.User.PunishmentData;
+import mc.dragons.core.gameobject.user.User.PunishmentType;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
-import net.md_5.bungee.api.ChatColor;
 
 public class InfoCommand implements CommandExecutor {
 	private UserLoader userLoader;
@@ -63,19 +65,38 @@ public class InfoCommand implements CommandExecutor {
 			skills += skill.toString() + " (" + targetUser.getSkillLevel(skill) + "), ";
 		}
 		skills = skills.substring(0, skills.length() - 2);
+		
+		
+
+		PunishmentData banData = targetUser.getActivePunishmentData(PunishmentType.BAN);
+		PunishmentData muteData = targetUser.getActivePunishmentData(PunishmentType.MUTE);
+		
 
 		sender.sendMessage(ChatColor.GOLD + "Report for User " + targetUser.getName());
 		if(targetPlayer == null) {
 			sender.sendMessage(ChatColor.YELLOW + "" + ChatColor.ITALIC + "This player is offline. Showing cached data.");
 		}
 		sender.sendMessage(ChatColor.YELLOW + "UUID: " + ChatColor.RESET + targetUser.getIdentifier().getUUID().toString());
+		sender.sendMessage(ChatColor.YELLOW + "Active Punishments:");
+		if(banData == null) {
+			sender.sendMessage(ChatColor.WHITE + "- Not banned");
+		}
+		else {
+			sender.sendMessage(ChatColor.WHITE + "- Banned: " + banData.getReason() + " (" + (banData.isPermanent() ? "Permanent" : "Until " + banData.getExpiry().toString()) + ")");
+		}
+		if(muteData == null) {
+			sender.sendMessage(ChatColor.WHITE + "- Not muted");
+		}
+		else {
+			sender.sendMessage(ChatColor.WHITE + "- Muted: " + muteData.getReason() + " (" + (muteData.isPermanent() ? "Permanent" : "Until " + muteData.getExpiry().toString()) + ")");
+		}
 		sender.sendMessage(ChatColor.YELLOW + "XP: " + ChatColor.RESET + targetUser.getXP() + " [Level " + targetUser.getLevel() + "]");
 		sender.sendMessage(ChatColor.YELLOW + "Rank: " + ChatColor.RESET + targetUser.getRank().getRankName());
 		sender.sendMessage(ChatColor.YELLOW + "Gold Balance: " + ChatColor.RESET + targetUser.getGold());
 		if(targetPlayer == null) {
 			sender.sendMessage(ChatColor.YELLOW + "Cached Location: " + ChatColor.RESET + StringUtil.locToString(targetUser.getSavedLocation()) + " in " + targetUser.getSavedLocation().getWorld().getName());
 			sender.sendMessage(ChatColor.YELLOW + "Cached Floor: " + ChatColor.RESET + floorLoader.fromLocation(targetUser.getSavedLocation()).getDisplayName());
-			sender.sendMessage(ChatColor.YELLOW + "Cached Regions: " + ChatColor.RESET + regionLoader.getRegionsByLocationXZ(targetUser.getSavedLocation()).stream().map(r -> r.getName()).collect(Collectors.joining(", ")));
+			sender.sendMessage(ChatColor.YELLOW + "Cached Regions: " + ChatColor.RESET + regionLoader.getRegionsByLocationXZ(targetUser.getSavedLocation()).stream().map(r -> r.getFlags().getString("fullname")).collect(Collectors.joining(", ")));
 			sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetUser.getSavedHealth() + " / " + targetUser.getSavedMaxHealth());
 		}
 		else {
@@ -92,6 +113,8 @@ public class InfoCommand implements CommandExecutor {
 		sender.sendMessage(ChatColor.YELLOW + "First Join: " + ChatColor.RESET + targetUser.getFirstJoined().toString());
 		sender.sendMessage(ChatColor.YELLOW + "Last Join: " + ChatColor.RESET + targetUser.getLastJoined().toString());
 		sender.sendMessage(ChatColor.YELLOW + "Last Seen: " + ChatColor.RESET + targetUser.getLastSeen().toString());
+		
+		
 		
 		if(targetPlayer == null) {
 			// User was only constructed for querying purposes. Since they're not really online, remove them from local registry

@@ -5,8 +5,13 @@ import java.util.List;
 
 import org.bson.Document;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+
 import mc.dragons.core.gameobject.GameObject;
+import mc.dragons.core.gameobject.npc.NPC;
 import mc.dragons.core.gameobject.quest.QuestTrigger.TriggerType;
+import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 
@@ -31,11 +36,13 @@ import mc.dragons.core.storage.StorageManager;
 public class Quest extends GameObject {
 
 	private List<QuestStep> steps;
+	private Table<User, String, NPC> referenceNames;
 	
 	public Quest(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
 		
-		steps = new ArrayList<>();	
+		steps = new ArrayList<>();
+		referenceNames = HashBasedTable.create();
 		
 		@SuppressWarnings("unchecked")
 		List<Document> rawSteps = (List<Document>) getData("steps");
@@ -68,6 +75,14 @@ public class Quest extends GameObject {
 	
 	public List<QuestStep> getSteps() {
 		return steps;
+	}
+	
+	public void registerNPCReference(User user, NPC npc, String referenceName) {
+		referenceNames.put(user, referenceName, npc);
+	}
+	
+	public NPC getNPCByReference(User user, String referenceName) {
+		return referenceNames.get(user, referenceName);
 	}
 	
 	public String getQuestName() {

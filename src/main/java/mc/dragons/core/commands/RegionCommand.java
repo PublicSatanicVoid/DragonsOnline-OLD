@@ -2,6 +2,7 @@ package mc.dragons.core.commands;
 
 import java.util.Map.Entry;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -20,7 +21,6 @@ import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
-import net.md_5.bungee.api.ChatColor;
 
 public class RegionCommand implements CommandExecutor {
 	//private UserLoader userLoader;

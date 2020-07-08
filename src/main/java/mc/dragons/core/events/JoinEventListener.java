@@ -2,6 +2,8 @@ package mc.dragons.core.events;
 
 import java.util.UUID;
 
+import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,6 +17,8 @@ import mc.dragons.core.gameobject.loader.ItemClassLoader;
 import mc.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.gameobject.user.User.PunishmentData;
+import mc.dragons.core.gameobject.user.User.PunishmentType;
 
 /**
  * Event handler for player joins. Takes care of user registration
@@ -42,19 +46,28 @@ public class JoinEventListener implements Listener {
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
-		Player p = event.getPlayer();
-		UUID uuid = p.getUniqueId();
+		Player player = event.getPlayer();
+		UUID uuid = player.getUniqueId();
 		User user = userLoader.loadObject(uuid);
+		event.setJoinMessage(null);
 		if(user == null) {
-			plugin.getLogger().info("Player " + p.getName() + " joined for the first time");
-			user = userLoader.registerNew(p);
+			plugin.getLogger().info("Player " + player.getName() + " joined for the first time");
+			user = userLoader.registerNew(player);
 			user.sendToFloor("UndeadForest");
 			for(ItemClass itemClass : defaultInventory) {
 				user.giveItem(itemLoader.registerNew(itemClass), true, false, true);
 			}
 		}
+		PunishmentData banData = user.getActivePunishmentData(PunishmentType.BAN);
+		if(banData != null) {
+			player.kickPlayer(ChatColor.DARK_RED + "" + ChatColor.BOLD + "You are banned.\n\n"
+					+ (banData.getReason().equals("") ? "" : ChatColor.GRAY + "Reason: " + ChatColor.WHITE + banData.getReason() + "\n")
+					+ ChatColor.GRAY + "Expires: " + ChatColor.WHITE + (banData.isPermanent() ? "Never" : banData.getExpiry().toString()));
+			return;
+		}
+		
 		user.handleJoin();
-		event.setJoinMessage(null);
+		player.setGameMode(GameMode.ADVENTURE);
 	}
 }
 	

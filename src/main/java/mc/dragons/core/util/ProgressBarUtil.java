@@ -1,6 +1,6 @@
 package mc.dragons.core.util;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 
 /**
  * Utility class for dealing with health bars.

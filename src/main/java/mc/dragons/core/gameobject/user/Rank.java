@@ -15,6 +15,7 @@ public enum Rank {
 	PATRON("Patron", ChatColor.DARK_AQUA + "[PATRON]", ChatColor.AQUA, ChatColor.WHITE),
 	YOUTUBE("YouTuber", ChatColor.RED + "[YOU" + ChatColor.WHITE + "TUBE" + ChatColor.RED + "]", ChatColor.RED, ChatColor.WHITE),
 	
+	BUILDER("Builder", ChatColor.BLUE + "[BUILDER]", ChatColor.BLUE, ChatColor.WHITE),
 	MODERATOR("Moderator", ChatColor.DARK_GREEN + "[MOD]", ChatColor.GREEN, ChatColor.WHITE),
 	GAME_MASTER("Game Master", ChatColor.DARK_RED + "[GM]", ChatColor.RED, ChatColor.WHITE),
 	ADMIN("Admin", ChatColor.DARK_RED + "[ADMIN]", ChatColor.RED, ChatColor.WHITE),

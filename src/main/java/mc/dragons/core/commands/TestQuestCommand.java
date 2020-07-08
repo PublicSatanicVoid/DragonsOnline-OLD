@@ -45,7 +45,7 @@ public class TestQuestCommand implements CommandExecutor {
 		
 		if(args.length == 0) {
 			sender.sendMessage(ChatColor.YELLOW + "/testquest -listquests");
-			sender.sendMessage(ChatColor.YELLOW + "/testquest <QuestName>");
+			sender.sendMessage(ChatColor.YELLOW + "/testquest <QuestName> [-reset]");
 			return true;
 		}
 		
@@ -62,6 +62,14 @@ public class TestQuestCommand implements CommandExecutor {
 		if(quest == null) {
 			sender.sendMessage(ChatColor.RED + "No quest by that name exists!");
 			return true;
+		}
+		
+		if(args.length >= 2) {
+			if(args[1].equalsIgnoreCase("-reset")) {
+				user.updateQuestProgress(quest, null);
+				sender.sendMessage(ChatColor.GREEN + "Erased your progress for quest " + quest.getQuestName() + ".");
+				return true;
+			}
 		}
 		
 		if(!quest.isValid()) {

@@ -11,6 +11,8 @@ commands:
     description: DRAGONS
   friend:
     description: Add, accept, and manage friends.
+  ilostthelousystick:
+  japanesesymbolforbeginner:
   party:
     description: Create, join, and manage parties.
     aliases: p
@@ -21,16 +23,44 @@ commands:
     description: Rename your held item. Requires blacksmithing level 20+ and costs 50 Gold per use. (Bypassed by MOD permission level)
   syslogon:
     description: Log on to system console.
-    aliases: syslogin
   bypassdeathcountdown:
     description: (TESTER) Skip the death countdown and respawn instantly.
   testquest:
     description: (TESTER) Force-begin a quest.
+  gamemode:
+    description: (BUILDER) Set gamemode.
+    aliases: gm
+  gma:
+    description: (BUILDER) Set gamemode to Adventure.
+  gmc:
+    description: (BUILDER) Set gamemode to Creative.
+  gms:
+    description: (BUILDER) Set gamemode to Survival.
+  gotofloor:
+    description: (BUILDER) Go to the specified floor, overriding level requirements.
+  ban:
+    description: (MOD) Ban a player.
   godmode:
     description: (MOD) Toggle God Mode.
     aliases: god
   info:
     description: (MOD) View a player's information.
+  kick:
+    description: (MOD) Kick a player.
+  mute:
+    description: (MOD) Mute a player.
+  unban:
+    description: (MOD) Unban a player.
+  unmute:
+    description: (MOD) Unmute a player.
+  unvanish:
+    description: (MOD) Unvanish yourself.
+    aliases: uv
+  vanish:
+    description: (MOD) Become invisible to non-staff players.
+    aliases: v
+  viewpunishments:
+    description: (MOD) View a player's punishment history.
   floor:
     description: (GM) Manage floors.
   item:
@@ -44,9 +74,19 @@ commands:
   region:
     description: (GM) Manage regions.
     aliases: r
+  reloadquests:
+    description: (GM) Reload all quests from the database.
   restat:
     description: (GM) Change the stats of your held item.
+  updatestats:
+    description: (GM) Update a player's stats.
+  experiment:
+    description: (ADMIN) Access experimental features.
+  loglevel:
+    description: (ADMIN) Set console log level.
   rank:
     description: (ADMIN) Set a player's rank.
+  removepunishment:
+    description: (ADMIN) Remove a punishment from a player's history.
   verifygameintegrity:
     description: (ADMIN) Verify integrity of active game environment.

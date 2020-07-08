@@ -1,13 +1,10 @@
 package mc.dragons.core.commands;
 
-import java.util.function.Supplier;
-
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import mc.dragons.core.gameobject.item.Item;
 import mc.dragons.core.gameobject.loader.ItemLoader;
@@ -52,17 +49,17 @@ public class RenameCommand implements CommandExecutor {
 		
 		String renameTo = ChatColor.YELLOW + ChatColor.translateAlternateColorCodes('&', StringUtil.concatArgs(args, 0));
 
-		Supplier<ItemStack> heldItemStackSupplier = () -> user.p().getItemInHand();
-		Item heldItem = ItemLoader.fromBukkit(heldItemStackSupplier.get());
+		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getItemInHand());
 		
 		if(heldItem == null) {
 			sender.sendMessage(ChatColor.RED + "You must hold the item you want to rename!");
 			return true;
 		}
 
+		//heldItem.rename(renameTo);
+		//heldItem.relore(heldItem.getLore().toArray(new String[heldItem.getLore().size()]));
 		heldItem.setCustom(true);
-		heldItem.safePermanentRename(heldItemStackSupplier, renameTo);
-		heldItem.safePermanentRelore(heldItemStackSupplier, heldItem.getLore().toArray(new String[heldItem.getLore().size()]));
+		user.getPlayer().setItemInHand(heldItem.rename(renameTo));
 		sender.sendMessage(ChatColor.GREEN + "Renamed your held item to " + renameTo);
 		
 		if(!bypassed) {

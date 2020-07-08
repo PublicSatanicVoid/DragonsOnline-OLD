@@ -1,6 +1,5 @@
 package mc.dragons.core.commands;
 
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.bukkit.ChatColor;
@@ -8,7 +7,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import mc.dragons.core.gameobject.item.Item;
 import mc.dragons.core.gameobject.loader.ItemLoader;
@@ -54,8 +52,7 @@ public class ReloreCommand implements CommandExecutor {
 		
 		String[] reloreTo = ChatColor.translateAlternateColorCodes('&', StringUtil.concatArgs(args, 0)).split(Pattern.quote("|"));
 
-		Supplier<ItemStack> heldItemStackSupplier = () -> user.p().getItemInHand();
-		Item heldItem = ItemLoader.fromBukkit(heldItemStackSupplier.get());
+		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getItemInHand());
 		
 		if(heldItem == null) {
 			sender.sendMessage(ChatColor.RED + "You must hold the item you want to relore!");
@@ -63,7 +60,7 @@ public class ReloreCommand implements CommandExecutor {
 		}
 
 		heldItem.setCustom(true);
-		heldItem.safePermanentRelore(heldItemStackSupplier, reloreTo);
+		user.getPlayer().setItemInHand(heldItem.relore(reloreTo));
 		sender.sendMessage(ChatColor.GREEN + "Relored your item successfully.");
 		
 		if(!bypassed) {

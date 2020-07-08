@@ -63,6 +63,7 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		return worldToRegions.getOrDefault(worldName, new HashSet<>());
 	}
 	
+	@Deprecated
 	public Set<Region> getRegionsByLocation(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();

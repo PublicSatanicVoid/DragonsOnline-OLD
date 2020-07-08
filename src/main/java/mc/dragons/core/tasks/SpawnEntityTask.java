@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -51,11 +52,13 @@ public class SpawnEntityTask {
 	public void run() {
 		if(!plugin.getServerOptions().isCustomSpawningEnabled()) return;
 		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.USER)) {
-			User user = (User)gameObject;
-			if(user.p() == null) continue;
-			World world = user.p().getWorld();
+			User user = (User) gameObject;
+			if(user.getPlayer() == null) continue;
+			if(user.getPlayer().getGameMode() == GameMode.CREATIVE) continue;
 			
-			Set<Region> regions = regionLoader.getRegionsByLocationXZ(user.p().getLocation());
+			World world = user.getPlayer().getWorld();
+			
+			Set<Region> regions = regionLoader.getRegionsByLocationXZ(user.getPlayer().getLocation());
 			Map<String, Double> spawnRates = new HashMap<>();
 			for(Region region : regions) {
 				for(Entry<String, Double> entry : region.getSpawnRates().entrySet()) {
@@ -70,7 +73,7 @@ public class SpawnEntityTask {
 					double xOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
 					double zOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
 					double yOffset = 2;
-					Location loc = user.p().getLocation().add(xOffset, yOffset, zOffset);
+					Location loc = user.getPlayer().getLocation().add(xOffset, yOffset, zOffset);
 					npcLoader.registerNew(world, loc, spawnRate.getKey());
 					for(int i = 0; i < 50; i++) {
 						if(loc.getBlock().getType().isSolid()) {

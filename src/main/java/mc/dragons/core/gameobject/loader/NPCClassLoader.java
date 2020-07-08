@@ -1,5 +1,6 @@
 package mc.dragons.core.gameobject.loader;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 import org.bson.Document;
@@ -8,7 +9,9 @@ import org.bukkit.entity.EntityType;
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.GameObjectType;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.npc.NPCClass;
+import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 
@@ -49,16 +52,23 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 		return null;
 	}
 	
-	public NPCClass registerNew(String className, String name, EntityType entityType, double maxHealth, int level, boolean hostile) {
+	public NPCClass registerNew(String className, String name, EntityType entityType, double maxHealth, int level, NPCType npcType) {
 		lazyLoadAll();
+		Document emptyConditionals = new Document();
+		for(NPCTrigger trigger : NPCTrigger.values()) {
+			emptyConditionals.append(trigger.toString(), new ArrayList<Document>());
+		}
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
 				.append("name", name)
 				.append("entityType", entityType.toString())
 				.append("maxHealth", maxHealth)
 				.append("level", level)
-				.append("hostile", hostile)
-				.append("lootTable", new Document());
+				.append("ai", npcType == NPCType.HOSTILE || npcType == NPCType.NEUTRAL)
+				.append("immortal", false)
+				.append("npcType", npcType.toString())
+				.append("lootTable", new Document())
+				.append("conditionals", emptyConditionals);
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC_CLASS, data);
 		NPCClass npcClass = new NPCClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(npcClass);

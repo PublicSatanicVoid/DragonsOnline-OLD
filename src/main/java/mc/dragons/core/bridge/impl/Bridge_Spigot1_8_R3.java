@@ -1,10 +1,15 @@
 package mc.dragons.core.bridge.impl;
 
 import org.bukkit.ChatColor;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
+import io.github.bananapuncher714.nbteditor.NBTEditor;
 import mc.dragons.core.bridge.Bridge;
+import net.minecraft.server.v1_8_R3.AxisAlignedBB;
 import net.minecraft.server.v1_8_R3.ChatComponentText;
 import net.minecraft.server.v1_8_R3.IChatBaseComponent.ChatSerializer;
 import net.minecraft.server.v1_8_R3.PacketPlayInClientCommand;
@@ -38,6 +43,28 @@ public class Bridge_Spigot1_8_R3 implements Bridge {
 	@Override
 	public void respawnPlayer(Player player) {
 		((CraftPlayer) player).getHandle().playerConnection.a(new PacketPlayInClientCommand(EnumClientCommand.PERFORM_RESPAWN));
+	}
+
+	@Override
+	public void setEntityAI(Entity entity, boolean ai) {
+		NBTEditor.set(entity, (byte) (!ai ? 1 : 0), "NoAI");
+	}
+
+	@Override
+	public void setItemStackUnbreakable(ItemStack itemStack, boolean unbreakable) {
+		NBTEditor.set(itemStack, unbreakable ? 1 : 0, "Unbreakable");
+	}
+	
+	@Override
+	public double[] getAABB(Entity entity) {
+		net.minecraft.server.v1_8_R3.Entity nmsEntity = ((CraftEntity)entity).getHandle();
+		AxisAlignedBB aabb = nmsEntity.getBoundingBox();
+		return new double[] { aabb.a, aabb.b, aabb.c, aabb.d, aabb.e, aabb.f };
+	}
+
+	@Override
+	public void setEntityInvulnerable(Entity entity, boolean immortal) {
+		NBTEditor.set(entity, (byte) (immortal ? 1 : 0), "Invulnerable");
 	}
 
 }

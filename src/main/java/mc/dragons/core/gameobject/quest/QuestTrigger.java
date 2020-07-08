@@ -1,7 +1,7 @@
 package mc.dragons.core.gameobject.quest;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -10,8 +10,13 @@ import org.bson.Document;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.ItemStack;
 
 import mc.dragons.core.gameobject.GameObjectType;
+import mc.dragons.core.gameobject.item.Item;
+import mc.dragons.core.gameobject.item.ItemClass;
+import mc.dragons.core.gameobject.loader.ItemClassLoader;
+import mc.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.core.gameobject.loader.NPCClassLoader;
 import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
@@ -27,16 +32,20 @@ public class QuestTrigger {
 		CLICK_NPC,
 		KILL_NPC,
 		INSTANT,
+		HAS_ITEM,
+		NEVER,
 		BRANCH_CONDITIONAL
 	};
 	
 	private static RegionLoader regionLoader;
 	private static NPCClassLoader npcClassLoader;
+	private static ItemClassLoader itemClassLoader;
 	
 	public static QuestTrigger fromDocument(Document trigger, Quest quest) {
 		if(regionLoader == null) {
 			regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 			npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
+			itemClassLoader = (ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader();
 		}
 		
 		
@@ -47,22 +56,30 @@ public class QuestTrigger {
 			questTrigger.region = regionLoader.getRegionByName(trigger.getString("region"));
 		}
 		else if(questTrigger.type == TriggerType.CLICK_NPC || questTrigger.type == TriggerType.KILL_NPC) {
-			questTrigger.npcClass = npcClassLoader.getNPCClassByClassName(trigger.getString("npcClass"));
+			//questTrigger.npcClass = npcClassLoader.getNPCClassByClassName(trigger.getString("npcClass"));
+			questTrigger.npcClassShortName = trigger.getString("npcClass");
 		}
 		else if(questTrigger.type == TriggerType.BRANCH_CONDITIONAL) {
-			questTrigger.branchPoints = new HashMap<>();
+			questTrigger.branchPoints = new LinkedHashMap<>();
 			for(Document conditional : trigger.getList("branchPoints", Document.class)) {
 				questTrigger.branchPoints.put(
 						QuestTrigger.fromDocument((Document) conditional.get("trigger"), quest) , 
 						QuestAction.fromDocument((Document) conditional.get("action"), quest)); 
 			}
 		}
+		else if(questTrigger.type == TriggerType.HAS_ITEM) {
+			questTrigger.itemClass = itemClassLoader.getItemClassByClassName(trigger.getString("itemClass"));
+			questTrigger.quantity = trigger.getInteger("quantity");
+		}
 		
 		return questTrigger;
 	}
 	
 	private TriggerType type;
+	private String npcClassShortName;
 	private NPCClass npcClass;
+	private ItemClass itemClass;
+	private int quantity;
 	private Region region;
 	private Map<QuestTrigger, QuestAction> branchPoints;
 	
@@ -102,6 +119,20 @@ public class QuestTrigger {
 		return trigger;
 	}
 	
+	public static QuestTrigger hasItem(ItemClass itemClass, int quantity) {
+		QuestTrigger trigger = new QuestTrigger();
+		trigger.type = TriggerType.HAS_ITEM;
+		trigger.itemClass = itemClass;
+		trigger.quantity = quantity;
+		return trigger;
+	}
+	
+	public static QuestTrigger never() {
+		QuestTrigger trigger = new QuestTrigger();
+		trigger.type = TriggerType.NEVER;
+		return trigger;
+	}
+	
 	public static QuestTrigger branchConditional(Map<QuestTrigger, QuestAction> branchPoints) {
 		QuestTrigger trigger = new QuestTrigger();
 		trigger.type = TriggerType.BRANCH_CONDITIONAL;
@@ -114,6 +145,7 @@ public class QuestTrigger {
 	}
 	
 	public NPCClass getNPCClass() {
+		npcClassDeferredLoad();
 		return npcClass;
 	}
 	
@@ -121,8 +153,22 @@ public class QuestTrigger {
 		return region;
 	}
 	
+	public ItemClass getItemClass() {
+		return itemClass;
+	}
+	
+	public int getQuantity() {
+		return quantity;
+	}
+	
 	public Map<QuestTrigger, QuestAction> getBranchPoints() {
 		return branchPoints;
+	}
+	
+	private void npcClassDeferredLoad() {
+		if(npcClass == null) {
+			npcClass = npcClassLoader.getNPCClassByClassName(npcClassShortName);
+		}
 	}
 	
 	public Document toDocument() {
@@ -134,7 +180,11 @@ public class QuestTrigger {
 			break;
 		case CLICK_NPC:
 		case KILL_NPC:
-			document.append("npcClass", npcClass.getName());
+			npcClassDeferredLoad();
+			document.append("npcClass", npcClass.getClassName());
+			break;
+		case HAS_ITEM:
+			document.append("itemClass", itemClass.getClassName()).append("quantity", quantity);
 			break;
 		case BRANCH_CONDITIONAL:
 			List<Document> conditions = new ArrayList<>();
@@ -153,6 +203,23 @@ public class QuestTrigger {
 		if(type == TriggerType.INSTANT) {
 			return true;
 		}
+		if(type == TriggerType.NEVER) {
+			return false;
+		}
+		if(type == TriggerType.HAS_ITEM) {
+			user.debug(" [ - Testing if has item " + itemClass.getClassName());
+			int has = 0;
+			for(ItemStack itemStack : user.getPlayer().getInventory().getContents()) {
+				Item item = ItemLoader.fromBukkit(itemStack);
+				if(item != null) {
+					if(item.getClassName().equals(itemClass.getClassName())) {
+						has += itemStack.getAmount();
+					}
+				}
+			}
+			user.debug("    [ - has " + has + " vs. needs " + quantity);
+			return has >= quantity;
+		}
 		if(type == TriggerType.ENTER_REGION) {
 			//user.p().sendMessage(" - Testing region " + region.getName());
 			user.updateState(false, false); // Force calculation based on EXACT position, but don't re-call triggers
@@ -170,19 +237,23 @@ public class QuestTrigger {
 			}
 		}
 		if(type == TriggerType.CLICK_NPC) {
-			//user.p().sendMessage(" - Testing NPC class " + npcClass.getName());
+			npcClassDeferredLoad();
+			//user.getPlayer().sendMessage(" - Testing NPC class " + npcClass.getName());
 			if(event == null) return false;
 			if(event instanceof PlayerInteractEntityEvent) {
+				user.debug("    [ - it's an interact entity event");
 				PlayerInteractEntityEvent interactEvent = (PlayerInteractEntityEvent) event;
 				NPC npc = NPCLoader.fromBukkit(interactEvent.getRightClicked());
 				if(npc == null) return false;
+				user.debug("    [ - clicked class: " + npc.getNPCClass().getClassName() + "; want: " + npcClass.getClassName());
 				if(npc.getNPCClass().equals(npcClass)) {
-					//user.p().sendMessage(" - Yes!");
+					//user.getPlayer().sendMessage("       - Yes!");
 					return true;
 				}
 			}
 		}
 		if(type == TriggerType.KILL_NPC) {
+			npcClassDeferredLoad();
 			//user.p().sendMessage(" - Testing NPC class " + npcClass.getName());
 			if(event == null) return false;
 			if(event instanceof EntityDeathEvent) {

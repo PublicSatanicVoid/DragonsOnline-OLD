@@ -53,6 +53,10 @@ public class SystemProfileLoader {
 		profileCollection.insertOne(new Document("profileName", profileName).append("profilePasswordHash", passwordHash(profilePassword)).append("maxPermissionLevel", permissionLevel.toString()).append("currentUser", ""));
 	}
 	
+	public static void setProfileMaxPermissionLevel(String profileName, PermissionLevel newMaxPermissionLevel) {
+		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("maxPermissionLevel", newMaxPermissionLevel.toString())));
+	}
+	
 	public static void logoutProfile(String profileName) {
 		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("currentUser", "")));
 	}

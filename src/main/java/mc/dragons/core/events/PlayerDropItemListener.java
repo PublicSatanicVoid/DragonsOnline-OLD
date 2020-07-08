@@ -26,7 +26,6 @@ public class PlayerDropItemListener implements Listener {
 		Item item = ItemLoader.fromBukkit(drop);
 		if(item == null) return;
 		User user = UserLoader.fromPlayer(event.getPlayer());
-		
 		user.takeItem(item);
 	}
 	

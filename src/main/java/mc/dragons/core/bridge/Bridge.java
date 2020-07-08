@@ -1,7 +1,9 @@
 package mc.dragons.core.bridge;
 
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * Abstraction layer providing functionality
@@ -19,4 +21,8 @@ public interface Bridge {
 			ChatColor subtitleColor, String subtitle, 
 			int fadeInTime, int showTime, int fadeOutTime);
 	public void respawnPlayer(Player player);
+	public void setEntityAI(Entity entity, boolean ai);
+	public void setItemStackUnbreakable(ItemStack itemStack, boolean unbreakable);
+	double[] getAABB(Entity entity);
+	public void setEntityInvulnerable(Entity entity, boolean immortal);
 }

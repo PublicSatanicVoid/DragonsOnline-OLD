@@ -105,8 +105,10 @@ public class QuestStep {
 	 * @return Whether the caller needs to update the quest stage.
 	 */
 	public boolean executeActions(User user) {
+		user.debug(" - Executing actions");
 		boolean shouldUpdateStage = true;
 		for(QuestAction action : actions) {
+			user.debug("   - Action type " + action.getActionType());
 			if(action.execute(user)) { // quest stage was modified
 				shouldUpdateStage = false;
 			}

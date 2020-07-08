@@ -1,5 +1,6 @@
 package mc.dragons.core.gameobject.user;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,8 +17,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
@@ -28,6 +31,7 @@ import mc.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.core.gameobject.loader.QuestLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
+import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.quest.Quest;
 import mc.dragons.core.gameobject.quest.QuestStep;
 import mc.dragons.core.gameobject.region.Region;
@@ -35,6 +39,7 @@ import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.StorageUtil;
 import mc.dragons.core.storage.impl.SystemProfile;
+import mc.dragons.core.storage.impl.SystemProfileLoader;
 
 /**
  * Represents a player in the RPG.
@@ -50,10 +55,46 @@ import mc.dragons.core.storage.impl.SystemProfile;
  *
  */
 public class User extends GameObject {
+	
+	public enum PunishmentType {
+		BAN("ban"),
+		MUTE("mute");
+		
+		private String dataHeader;
+		
+		PunishmentType(String dataHeader) {
+			this.dataHeader = dataHeader;
+		}
+		
+		public String getDataHeader() {
+			return dataHeader;
+		}
+		
+	}
+	
+	public class PunishmentData {
+		private PunishmentType type;
+		private String reason;
+		private Date expiry;
+		public boolean permanent;
+		
+		public PunishmentData(PunishmentType type, String reason, Date expiry, boolean permanent) {
+			this.type = type;
+			this.reason = reason;
+			this.expiry = expiry;
+			this.permanent = permanent;
+		}
+		
+		public PunishmentType getType() { return type; }
+		public String getReason() { return reason; }
+		public Date getExpiry() { return expiry; }
+		public boolean isPermanent() { return permanent; }
+	}
 
 	private static RegionLoader regionLoader;
 	private static FloorLoader floorLoader;
 	private static QuestLoader questLoader;
+	private static UserLoader userLoader;
 	
 	public static final double MIN_DISTANCE_TO_UPDATE_STATE = 2.0;
 	
@@ -63,9 +104,14 @@ public class User extends GameObject {
 	private PermissionLevel activePermissionLevel;
 	private SystemProfile profile;
 	private Map<Quest, QuestStep> questProgress;
+	private boolean isDebugging;
 	
 	public static int calculateLevel(int xp) {
 		return (int) Math.floor(xp / 1_000_000 + Math.sqrt(xp / 100)) + 1;
+	}
+	
+	public static int calculateSkillLevel(double progress) {
+		return (int) Math.floor(Math.sqrt(progress / 15));
 	}
 	
 	public static int calculateMaxHealth(int level) {
@@ -84,7 +130,14 @@ public class User extends GameObject {
 		if(questLoader == null) {
 			questLoader = (QuestLoader) GameObjectType.QUEST.<Quest>getLoader();
 		}
+		if(userLoader == null) {
+			userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
+		}
 		
+		initialize(player);
+	}	
+	
+	public User initialize(Player player) {
 		this.player = player;
 		if(player != null) {
 			player.getInventory().clear();
@@ -111,18 +164,38 @@ public class User extends GameObject {
 		
 		cachedRegions = new HashSet<>();
 		activePermissionLevel = PermissionLevel.USER;
-	}	
+		return this;
+	}
+	
+	public void setDebugging(boolean debugging) {
+		isDebugging = debugging;
+	}
+	
+	public boolean isDebugging() {
+		return isDebugging;
+	}
+	
+	public void debug(String message) {
+		if(isDebugging()) {
+			player.sendMessage("[DEBUG] " + message);
+		}
+	}
 	
 	public void updateQuests(Event event) {
+		debug("Updating quests...");
 		for(Entry<Quest, QuestStep> questStep : questProgress.entrySet()) {
+			debug("- Step " + questStep.getValue().getStepName() + " of " + questStep.getKey().getName());
 			if(questStep.getValue().getStepName().equalsIgnoreCase("Complete")) continue; // Nothing to check if they're already done
+			debug("  - Trigger: " + questStep.getValue().getTrigger().getTriggerType());
 			if(questStep.getValue().getTrigger().test(this, event)) {
 				Quest quest = questStep.getKey();
+				debug("   - Triggered");
 				if(questStep.getValue().executeActions(this)) {
+					debug("      - Normal progression to next step");
 					int nextIndex = quest.getSteps().indexOf(questStep.getValue()) + 1;
 					if(nextIndex != quest.getSteps().size()) {
 						QuestStep nextStep = quest.getSteps().get(nextIndex);
-						updateQuestProgress(quest, nextStep);
+						updateQuestProgress(quest, nextStep, true);
 					}
 				}
 			}
@@ -198,15 +271,24 @@ public class User extends GameObject {
 		
 		cachedLocation = player.getLocation();
 		cachedRegions = regions;
+		
+		updateEffectiveWalkSpeed();
 	}
 	
 	public Map<Quest, QuestStep> getQuestProgress() {
 		return questProgress;
 	}
 	
-	public void updateQuestProgress(Quest quest, QuestStep questStep, boolean notify) {		
-		questProgress.put(quest, questStep);
+	public void updateQuestProgress(Quest quest, QuestStep questStep, boolean notify) {	
 		Document updatedQuestProgress = (Document) getData("quests");
+		if(questStep == null) {
+			questProgress.remove(quest);
+			updatedQuestProgress.remove(quest.getName());
+			storageAccess.update(new Document("quests", updatedQuestProgress));
+			return;
+		}
+		debug("==UPDATING QUEST PROGRESS: " + quest.getName() + " step " + questStep.getStepName());
+		questProgress.put(quest, questStep);
 		updatedQuestProgress.append(quest.getName(), quest.getSteps().indexOf(questStep));
 		storageAccess.update(new Document("quests", updatedQuestProgress));
 		if(notify) {
@@ -262,11 +344,38 @@ public class User extends GameObject {
 	public void handleJoin() {
 		setData("lastJoined", System.currentTimeMillis());
 		player.sendMessage(ChatColor.GOLD + "Hello " + player.getName() + " and welcome to Dragons.");
-		player.sendMessage(ChatColor.YELLOW + "Your level is " + getData("level") + " [" + getData("xp") + " XP]");
-		if(getRank().ordinal() >= Rank.PATRON.ordinal()) {
-			Bukkit.broadcastMessage(getRank().getNameColor() + getRank().getRankName() + " " + player.getName() + " joined!");
+		player.sendMessage(ChatColor.YELLOW + "Your level is " + getLevel() + " [" + getXP() + " XP]");
+		player.sendMessage(ChatColor.YELLOW + "You have " + getGold() + " gold.");
+		if(isVanished()) {
+			player.sendMessage(ChatColor.DARK_GREEN + "You are currently vanished.");
 		}
+		else {
+			if(getRank().ordinal() >= Rank.PATRON.ordinal()) {
+				Bukkit.broadcastMessage(getRank().getNameColor() + getRank().getRankName() + " " + player.getName() + " joined!");
+			}
+			else {
+				Bukkit.broadcastMessage(ChatColor.GRAY + player.getName() + " joined!");
+			}
+		}
+		
 		updateState();
+		updateVanishState();
+		updateVanishStatesOnSelf();
+	}
+	
+	public void handleQuit() {
+		autoSave();
+		if(!isVanished()) {
+			Bukkit.broadcastMessage(ChatColor.GRAY + player.getName() + " left!");
+		}
+		if(profile != null) {
+			SystemProfileLoader.logoutProfile(profile.getProfileName());
+			setActivePermissionLevel(PermissionLevel.USER);
+			setSystemProfile(null);
+		}
+		player.getInventory().clear();
+		// TODO remove armor as well
+		userLoader.removeStalePlayer(player);
 	}
 	
 	public void handleMove() {
@@ -289,8 +398,12 @@ public class User extends GameObject {
 		}
 	}
 	
-	public Player p() {
+	public Player getPlayer() {
 		return player;
+	}
+	
+	public void setPlayer(Player player) {
+		this.player = player;
 	}
 	
 	public String getName() {
@@ -340,6 +453,29 @@ public class User extends GameObject {
 		Dragons.getInstance().getBridge().sendTitle(player, titleColor, title, subtitleColor, subtitle, fadeInTime, showTime, fadeOutTime);
 	}
 	
+	public double getEffectiveWalkSpeed() {
+		double speed = Dragons.getInstance().getServerOptions().getDefaultWalkSpeed();
+
+		for(ItemStack itemStack : player.getInventory().getArmorContents()) {
+			if(itemStack == null) continue;
+			Item item = ItemLoader.fromBukkit(itemStack);
+			if(item == null) continue;
+			speed += item.getSpeedBoost();
+		}
+		
+		ItemStack held = player.getItemInHand();
+		Item item = ItemLoader.fromBukkit(held);
+		if(item != null) {
+			speed += item.getSpeedBoost();
+		}
+		
+		return Math.min(1.0, Math.max(0.05, speed));
+	}
+	
+	public void updateEffectiveWalkSpeed() {
+		player.setWalkSpeed((float) getEffectiveWalkSpeed()); 
+	}
+	
 	public void clearInventory() {
 		player.getInventory().clear();
 		setData("inventory", new ArrayList<>());
@@ -353,6 +489,20 @@ public class User extends GameObject {
 		player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20 * seconds, 10, false, false), true);
 		player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 20 * seconds, 10, false, false), true);
 		player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 20 * seconds, 0, false, false), true);
+		new BukkitRunnable() {
+			int counter = seconds;
+			@Override
+			public void run() {
+				if(hasDeathCountdown()) {
+					sendActionBar(ChatColor.DARK_RED + "Respawning in " + counter + "s");
+					counter--;
+				}
+				else {
+					sendActionBar(ChatColor.YELLOW + "Respawning...");
+					this.cancel();
+				}
+			}
+		}.runTaskTimer(Dragons.getInstance(), 0L, 20L);
 	}
   
 	public boolean hasDeathCountdown() {
@@ -378,13 +528,16 @@ public class User extends GameObject {
 	}
 	
 	public void addXP(int xp) {
-		int totalXP = (int) getData("xp") + xp;
-		int level = calculateLevel(totalXP);
+		setXP(getXP() + xp);
+	}
+	
+	public void setXP(int xp) {
+		int level = calculateLevel(xp);
 		if(level > getLevel()) {
 			sendTitle(ChatColor.DARK_AQUA, "Level Up!", ChatColor.AQUA, getLevel() + "  >>>  " + level, 10, 10, 10);
 			player.setMaxHealth(calculateMaxHealth(level));
 		}
-		update(new Document("xp", totalXP).append("level", level));
+		update(new Document("xp", xp).append("level", level));
 	}
 	
 	public int getXP() {
@@ -432,6 +585,39 @@ public class User extends GameObject {
 		}
 	}
 	
+	public static void updateVanishStateBetween(User userOf, User userFor) {
+		if(userOf.isVanished() && userFor.getActivePermissionLevel().ordinal() < PermissionLevel.MOD.ordinal()) {
+			userFor.player.hidePlayer(userOf.player);
+		}
+		else if(!userFor.player.canSee(userOf.player)) {
+			userFor.player.showPlayer(userOf.player);
+		}
+	}
+	
+	public void updateVanishStatesOnSelf() {
+		for(Player test : Bukkit.getOnlinePlayers()) {
+			User user = UserLoader.fromPlayer(test);
+			updateVanishStateBetween(user, this);
+		}
+	}
+	
+	public void updateVanishState() {
+		player.spigot().setCollidesWithEntities(!isVanished());
+		player.setAllowFlight(isVanished());
+		for(Player test : Bukkit.getOnlinePlayers()) {
+			updateVanishStateBetween(this, UserLoader.fromPlayer(test));
+		}
+	}
+	
+	public void setVanished(boolean vanished) {
+		setData("vanished", vanished);
+		updateVanishState();
+	}
+	
+	public boolean isVanished() {
+		return (boolean) getData("vanished");
+	}
+	
 	public void setGodMode(boolean enabled) {
 		setData("godMode", enabled);
 	}
@@ -457,7 +643,10 @@ public class User extends GameObject {
 			return false;
 		}
 		activePermissionLevel = permissionLevel;
+		player.addAttachment(Dragons.getInstance(), "worldedit.*", permissionLevel.ordinal() >= PermissionLevel.BUILDER.ordinal());
+		player.addAttachment(Dragons.getInstance(), "minecraft.command.teleport", permissionLevel.ordinal() >= PermissionLevel.MOD.ordinal());
 		sendActionBar(ChatColor.GRAY + "Active permission level changed to " + permissionLevel.toString());
+		updateVanishStatesOnSelf();
 		return true;
 	}
 	
@@ -495,23 +684,108 @@ public class User extends GameObject {
 		update(new Document("skills", skillLevels));
 	}
 	
-	public void updateSkillProgress(SkillType type, double increment) {
+	public void incrementSkillProgress(SkillType type, double increment) {
+		setSkillProgress(type, getSkillProgress(type) + increment);
+	}
+	
+	public void setSkillProgress(SkillType type, double progress) {
 		Document skillProgress = (Document) getData("skillProgress");
-		//player.sendMessage("updating " + type.toString() + " +" + increment);
-		double progress = skillProgress.getDouble(type.toString()) + increment;
-		//player.sendMessage("new total=" + progress);
-		int level = getSkillLevel(type);
-		//player.sendMessage("current level=" + level);
 		skillProgress.append(type.toString(), progress);
-		if(progress >= 30 * (level + 1)) {
-			setSkillLevel(type, level + 1);
-			sendTitle(ChatColor.DARK_GREEN, type.getFriendlyName() + " Increased!", ChatColor.GREEN, level + " >>> " + (level + 1));
+		int currentLevel = getSkillLevel(type);
+		int level = calculateSkillLevel(progress);
+		if(level != currentLevel) {
+			setSkillLevel(type, level);
+			sendTitle(ChatColor.DARK_GREEN, type.getFriendlyName() + (level > currentLevel ? " Increased!" : " Changed"), ChatColor.GREEN, currentLevel + " >>> " + level);
 		}
 		update(new Document("skillProgress", skillProgress));
 	}
 	
 	public double getSkillProgress(SkillType type) {
 		return (double)((Document) getData("skillProgress")).getDouble(type.toString());
+	}
+	
+
+	public List<PunishmentData> getPunishmentHistory() {
+		List<PunishmentData> history = new ArrayList<>();
+	
+		@SuppressWarnings("unchecked")
+		List<Document> results = (List<Document>) getData("punishmentHistory");
+		for(Document entry : results) {
+			Date expiry = new Date(1000 * (entry.getLong("banDate") + entry.getLong("duration")));
+			history.add(new PunishmentData(PunishmentType.valueOf(entry.getString("type")), entry.getString("reason"), expiry, entry.getLong("duration") == -1));
+		}
+		
+		return history;
+	}
+	
+	public void punish(PunishmentType punishmentType, String reason) {
+		punish(punishmentType, reason, -1L);
+	}
+	
+	public void punish(PunishmentType punishmentType, String reason, long durationSeconds) {
+		long now = Instant.now().getEpochSecond();
+		Document punishment = new Document("type", punishmentType.toString())
+				.append("reason", reason)
+				.append("duration", durationSeconds)
+				.append("banDate", now);
+		setData(punishmentType.getDataHeader(), punishment);
+	
+		@SuppressWarnings("unchecked")
+		List<Document> punishmentHistory = (List<Document>) getData("punishmentHistory");
+		punishmentHistory.add(punishment);
+		setData("punishmentHistory", punishmentHistory);
+		
+		String expiry = durationSeconds == -1 ? "Never" : new Date(1000 * (now + durationSeconds)).toString();
+		if(player != null) {
+			if(punishmentType == PunishmentType.BAN) {
+				player.kickPlayer(ChatColor.DARK_RED + "" + ChatColor.BOLD + "You have been banned.\n\n"
+						+ (reason.equals("") ? "" : ChatColor.GRAY + "Reason: " + ChatColor.WHITE + reason + ChatColor.WHITE + "\n")
+						+ ChatColor.GRAY + "Expires: " + ChatColor.WHITE + expiry);
+			}
+			else {
+				player.sendMessage("");
+				player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "You have been muted.");
+				if(!reason.equals("")) {
+					player.sendMessage(ChatColor.RED + "Reason: " + reason);
+				}
+				player.sendMessage(ChatColor.RED + "Expires: " + expiry);
+				player.sendMessage("");
+			}
+		}
+	}
+	
+	
+	public void unpunish(PunishmentType punishmentType) {
+		setData(punishmentType.getDataHeader(), null);
+		if(player != null) {
+			if(punishmentType == PunishmentType.MUTE) {
+				player.sendMessage("");
+				player.sendMessage(ChatColor.DARK_GREEN + "Your mute has been revoked.");
+				player.sendMessage("");
+			}
+		}
+	}
+	
+	
+	
+	public PunishmentData getActivePunishmentData(PunishmentType punishmentType) {
+		Document banData = (Document) getData(punishmentType.getDataHeader());
+		if(banData == null) {
+			return null;
+		}
+		PunishmentType type = PunishmentType.valueOf(banData.getString("type"));
+		String reason = banData.getString("reason");
+		long duration = banData.getLong("duration");
+		long banDate = banData.getLong("banDate");
+		long now = Instant.now().getEpochSecond();
+		Date expiry = new Date(1000 * (banDate + duration));
+		if(duration == -1) {
+			return new PunishmentData(type, reason, expiry, true);
+		}
+		if(now > banDate + duration) {
+			return null;
+		}
+		return new PunishmentData(type, reason, expiry, false);
 	}
 	
 	@Override

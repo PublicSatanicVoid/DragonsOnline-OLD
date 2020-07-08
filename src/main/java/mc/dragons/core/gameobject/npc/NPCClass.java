@@ -4,16 +4,43 @@ import org.bson.Document;
 import org.bukkit.entity.EntityType;
 
 import mc.dragons.core.gameobject.GameObject;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
+import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
+import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 
 public class NPCClass extends GameObject {
 	
 	private LootTable lootTable;
+	private NPCConditionalActions[] conditionals = new NPCConditionalActions[NPCTrigger.values().length];
 	
 	public NPCClass(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
 		lootTable = new LootTable(this);
+		int i = 0;
+		for(NPCTrigger trigger : NPCTrigger.values()) {
+			conditionals[i] = new NPCConditionalActions(trigger, this);
+			i++;
+		}
+	}
+	
+	public void executeConditionals(NPCTrigger trigger, User user) {
+		user.debug("Executing conditionals");
+		for(NPCConditionalActions conditionalAction : conditionals) {
+			if(conditionalAction.getTrigger() == trigger) {
+				conditionalAction.executeConditionals(user);
+			}
+		}
+	}
+	
+	public NPCConditionalActions getConditionalActions(NPCTrigger trigger) {
+		for(NPCConditionalActions conditionalAction : conditionals) {
+			if(conditionalAction.getTrigger() == trigger) {
+				return conditionalAction;
+			}
+		}
+		return null;
 	}
 	
 	public LootTable getLootTable() {
@@ -59,6 +86,22 @@ public class NPCClass extends GameObject {
 		setData("entityType", type.toString());
 	}
 	
+	public boolean isImmortal() {
+		return (boolean) getData("immortal");
+	}
+	
+	public void setImmortal(boolean immortal) {
+		setData("immortal", immortal);
+	}
+	
+	public boolean hasAI() {
+		return (boolean) getData("ai");
+	}
+	
+	public void setAI(boolean hasAI) {
+		setData("ai", hasAI);
+	}
+	
 	public double getMaxHealth() {
 		return (double) getData("maxHealth");
 	}
@@ -75,11 +118,11 @@ public class NPCClass extends GameObject {
 		setData("level", level);
 	}
 	
-	public boolean isHostile() {
-		return (boolean) getData("hostile");
+	public NPCType getNPCType() {
+		return NPCType.valueOf((String) getData("npcType"));
 	}
 	
-	public void setHostile(boolean hostile) {
-		setData("hostile", hostile);
+	public void setNPCType(NPCType npcType) {
+		setData("npcType", npcType);
 	}
 }

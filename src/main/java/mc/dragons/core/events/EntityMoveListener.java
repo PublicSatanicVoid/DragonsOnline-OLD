@@ -14,6 +14,7 @@ import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.gameobject.user.User;
 
@@ -34,7 +35,7 @@ public class EntityMoveListener extends PacketAdapter {
 			return;
 		}
 		NPC npc = (NPC) entity.getMetadata("handle").get(0).value();
-		if(npc.isHostile()) {
+		if(npc.getNPCType() == NPCType.HOSTILE) {
 			Set<Region> regions = regionLoader.getRegionsByLocationXZ(entity.getLocation());
 			for(Region region : regions) {
 				if(!Boolean.valueOf(region.getFlags().getString("allowhostile"))) {

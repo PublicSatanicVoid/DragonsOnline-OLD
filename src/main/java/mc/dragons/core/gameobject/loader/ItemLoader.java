@@ -16,17 +16,20 @@ import mc.dragons.core.gameobject.item.Item;
 import mc.dragons.core.gameobject.item.ItemClass;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
+import mc.dragons.core.util.HiddenStringUtil;
 
 public class ItemLoader extends GameObjectLoader<Item> {
 
 	private static ItemLoader INSTANCE;
 	private GameObjectRegistry masterRegistry;
-	private static Map<ItemStack, Item> itemStackToItem;
+	//private static Map<ItemStack, Item> itemStackToItem;
+	private static Map<String, Item> uuidToItem;
 	
 	private ItemLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
 		masterRegistry = instance.getGameObjectRegistry();
-		itemStackToItem = new HashMap<>();
+		//itemStackToItem = new HashMap<>();
+		uuidToItem = new HashMap<>();
 	}
 	
 	public synchronized static ItemLoader getInstance(Dragons instance, StorageManager storageManager) {
@@ -42,7 +45,8 @@ public class ItemLoader extends GameObjectLoader<Item> {
 		ItemStack itemStack = new ItemStack(type);
 		Item item = new Item(itemStack, storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(item);
-		itemStackToItem.put(itemStack, item);
+		//itemStackToItem.put(itemStack, item);
+		uuidToItem.put(item.getUUID().toString(), item);
 		return new Item(itemStack, storageManager, storageAccess);
 	}
 	
@@ -51,11 +55,11 @@ public class ItemLoader extends GameObjectLoader<Item> {
 	}
 	
 	public Item registerNew(ItemClass itemClass) {
-		return registerNew(itemClass.getClassName(), itemClass.getName(), false, itemClass.getNameColor(), itemClass.getMaterial(), itemClass.getLevelMin(), itemClass.getCooldown(), itemClass.isUnbreakable(),
-				itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore());
+		return registerNew(itemClass.getClassName(), itemClass.getName(), false, itemClass.getNameColor(), itemClass.getMaterial(), itemClass.getLevelMin(), itemClass.getCooldown(), itemClass.getSpeedBoost(),
+				itemClass.isUnbreakable(), itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore());
 	}
 	
-	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, boolean unbreakable, double damage, double armor, List<String> lore) {
+	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, double damage, double armor, List<String> lore) {
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
 				.append("name", name)
@@ -64,6 +68,7 @@ public class ItemLoader extends GameObjectLoader<Item> {
 				.append("materialType", material.toString())
 				.append("lvMin", levelMin)
 				.append("cooldown", cooldown)
+				.append("speedBoost", speedBoost)
 				.append("unbreakable", unbreakable)
 				.append("damage", damage)
 				.append("armor", armor)
@@ -71,18 +76,19 @@ public class ItemLoader extends GameObjectLoader<Item> {
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.ITEM, data);
 		ItemStack itemStack = new ItemStack(material);
 		Item item = new Item(itemStack, storageManager, storageAccess);
-		itemStackToItem.put(itemStack, item);
+		//itemStackToItem.put(itemStack, item);
+		uuidToItem.put(item.getUUID().toString(), item);
 		masterRegistry.getRegisteredObjects().add(item);
 		return item;
 	}
 	
 	public static Item fromBukkit(ItemStack itemStack) {
-		return itemStackToItem.get(itemStack);
-	}
-	
-	public static void updateBukkitReference(ItemStack oldItemStack, ItemStack newItemStack, Item item) {
-		itemStackToItem.remove(oldItemStack, item);
-		itemStackToItem.put(newItemStack, item);
+		if(itemStack == null) return null;
+		if(itemStack.getItemMeta() == null) return null;
+		if(itemStack.getItemMeta().getLore() == null) return null;
+		if(itemStack.getItemMeta().getLore().size() < 2) return null;
+		//return itemStackToItem.get(itemStack);
+		return uuidToItem.get(HiddenStringUtil.extractHiddenString(itemStack.getItemMeta().getLore().get(1)));
 	}
 
 }

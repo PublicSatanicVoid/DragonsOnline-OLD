@@ -1,8 +1,8 @@
 package mc.dragons.core.util;
 
-import java.util.Map.Entry;
-
 import static mc.dragons.core.util.MathUtil.round;
+
+import java.util.Map.Entry;
 
 import org.bson.Document;
 import org.bukkit.Location;
@@ -48,11 +48,65 @@ public class StringUtil {
 		return result.substring(0, result.length() - 1);
 	}
 	
-	public static String concatArgs(String[] args, int startIndex) {
+	public static String concatArgs(String[] args, int startIndex, int endIndex) {
+		if(endIndex <= startIndex) return "";
+		if(startIndex >= args.length) return ""; 
 		String result = "";
-		for(int i = startIndex; i < args.length; i++) {
+		for(int i = startIndex; i < Math.min(endIndex, args.length); i++) {
 			result += args[i] + " ";
 		}
 		return result.substring(0, result.length() - 1);
+	}
+	
+	public static String concatArgs(String[] args, int startIndex) {
+		return concatArgs(args, startIndex, args.length);
+	}
+	
+	public static int getFlagIndex(String[] args, String flag, int startIndex) {
+		for(int i = startIndex; i < args.length; i++) {
+			if(args[i].equalsIgnoreCase(flag)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	public static long parseTimespanToSeconds(String timespan) {
+		if(timespan.equals("")) return -1L;
+		long timespanSeconds = 0L;
+		int buffer = 0;
+		char[] chars = timespan.toCharArray();
+		for(char ch : chars) {
+			switch(ch) {
+			case 'y':
+				timespanSeconds += 60 * 60 * 24 * 365 * buffer;
+				buffer = 0;
+				break;
+			case 'w':
+				timespanSeconds += 60 * 60 * 24 * 7 * buffer;
+				buffer = 0;
+				break;
+			case 'd':
+				timespanSeconds += 60 * 60 * 24 * buffer;
+				buffer = 0;
+				break;
+			case 'h':
+				timespanSeconds += 60 * 60 * buffer;
+				buffer = 0;
+				break;
+			case 'm':
+				timespanSeconds += 60 * buffer;
+				buffer = 0;
+				break;
+			case 's':
+				timespanSeconds += buffer;
+				buffer = 0;
+				break;
+			default:
+				buffer *= 10;
+				buffer += Integer.parseInt(new String(new char[] { ch }));
+			}
+		}
+		return timespanSeconds;
 	}
 }

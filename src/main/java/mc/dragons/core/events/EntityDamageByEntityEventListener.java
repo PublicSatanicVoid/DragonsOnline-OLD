@@ -19,6 +19,7 @@ import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
+import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
 import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.gameobject.user.SkillType;
 import mc.dragons.core.gameobject.user.User;
@@ -63,6 +64,22 @@ public class EntityDamageByEntityEventListener implements Listener {
 		}
 		else {
 			npcTarget = NPCLoader.fromBukkit(target);
+			if(npcTarget != null) {
+				if(npcTarget.isImmortal()) {
+					event.setCancelled(true);
+					if(userDamager != null) {
+						Item item = ItemLoader.fromBukkit(userDamager.getPlayer().getItemInHand());
+						if(item.getClassName().equals("Special:ImmortalOverride")) {
+							npcTarget.getEntity().remove();
+							plugin.getGameObjectRegistry().removeFromDatabase(npcTarget);
+							userDamager.getPlayer().sendMessage(ChatColor.GREEN + "Removed NPC successfully.");
+							return;
+						}
+					}
+					npcTarget.updateHealthBar();
+					return;
+				}
+			}
 		}
 		
 		double distance = damager.getLocation().distance(target.getLocation());
@@ -111,7 +128,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 		}
 		else { // User damager
 			
-			Item attackerHeldItem = ItemLoader.fromBukkit(userDamager.p().getInventory().getItemInHand());
+			Item attackerHeldItem = ItemLoader.fromBukkit(userDamager.getPlayer().getInventory().getItemInHand());
 			double itemDamage = 0.5;
 			if(attackerHeldItem != null) {
 				if(attackerHeldItem.hasCooldownRemaining()) {
@@ -126,7 +143,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 				new BukkitRunnable() {
 					@Override
 					public void run() {
-						Item currentHeldItem = ItemLoader.fromBukkit(fUserDamager.p().getItemInHand());
+						Item currentHeldItem = ItemLoader.fromBukkit(fUserDamager.getPlayer().getItemInHand());
 						if(currentHeldItem == null) return;
 						if(!currentHeldItem.equals(attackerHeldItem)) return;
 						//fUserDamager.sendActionBar(heldItem.getDecoratedName() + " " + ProgressBarUtil.getCountdownBar(heldItem.getCooldownRemaining() / heldItem.getCooldown()));
@@ -136,11 +153,11 @@ public class EntityDamageByEntityEventListener implements Listener {
 						//meta.setDisplayName(attackerHeldItem.getDecoratedName() + ChatColor.DARK_GRAY + " [" + ProgressBarUtil.getCountdownBar(percentRemaining) + ChatColor.DARK_GRAY + "]");
 						//attackerHeldItem.getItemStack().setItemMeta(meta);
 						String cooldownName = attackerHeldItem.getDecoratedName() + ChatColor.DARK_GRAY + " [" + ProgressBarUtil.getCountdownBar(percentRemaining) + ChatColor.DARK_GRAY + "]";
-						attackerHeldItem.safeLocalRename(() -> fUserDamager.p().getItemInHand(), cooldownName);
+						fUserDamager.getPlayer().setItemInHand(attackerHeldItem.localRename(cooldownName));
 						if(!attackerHeldItem.hasCooldownRemaining()) {
 							//fUserDamager.sendActionBar(heldItem.getDecoratedName() + ChatColor.GREEN + " RECHARGED");
 							//attackerHeldItem.getItemStack().getItemMeta().setDisplayName(attackerHeldItem.getDecoratedName());
-							attackerHeldItem.safeLocalRename(() -> fUserDamager.p().getItemInHand(), attackerHeldItem.getDecoratedName());
+							fUserDamager.getPlayer().setItemInHand(attackerHeldItem.localRename(attackerHeldItem.getDecoratedName()));
 							this.cancel();
 						}
 						//ItemStack after = fUserDamager.p().getItemInHand();
@@ -177,7 +194,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 			}
 			
 			// Melee
-			userDamager.updateSkillProgress(SkillType.MELEE, Math.min(0.5, 1 / distance));
+			userDamager.incrementSkillProgress(SkillType.MELEE, Math.min(0.5, 1 / distance));
 			double randomMelee = Math.random() * userDamager.getSkillLevel(SkillType.MELEE) / distance;
 			damage += randomMelee;
 			
@@ -187,20 +204,21 @@ public class EntityDamageByEntityEventListener implements Listener {
 			double randomDefense = Math.random() * userTarget.getSkillLevel(SkillType.DEFENSE);
 			damage -= randomDefense;
 			
-			Item targetHeldItem = ItemLoader.fromBukkit(userTarget.p().getInventory().getItemInHand());
+			Item targetHeldItem = ItemLoader.fromBukkit(userTarget.getPlayer().getInventory().getItemInHand());
 			double itemDefense = 0.0;
 			if(targetHeldItem != null) {
 				itemDefense = targetHeldItem.getArmor();
 			}
-			for(ItemStack i : userTarget.p().getInventory().getArmorContents()) {
+			for(ItemStack i : userTarget.getPlayer().getInventory().getArmorContents()) {
 				Item armorItem = ItemLoader.fromBukkit(i);
 				if(armorItem != null) {
 					itemDefense += armorItem.getArmor();
 				}
 			}
+			double damageBlocked = Math.max(damage - itemDefense, 0.0);
 			damage -= itemDefense;
 			
-			userTarget.updateSkillProgress(SkillType.DEFENSE, 20 * Math.random() * itemDefense);
+			userTarget.incrementSkillProgress(SkillType.DEFENSE, Math.random() * damageBlocked);
 		}
 
 		damage = Math.max(0.0, damage);
@@ -208,6 +226,9 @@ public class EntityDamageByEntityEventListener implements Listener {
 		
 		if(npcTarget != null) {
 			npcTarget.updateHealthBar(damage);
+			if(userDamager != null) {
+				npcTarget.getNPCClass().executeConditionals(NPCTrigger.HIT, userDamager);
+			}
 		}
 	}
 }

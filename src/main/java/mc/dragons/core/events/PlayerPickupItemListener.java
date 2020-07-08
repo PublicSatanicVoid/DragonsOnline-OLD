@@ -37,6 +37,9 @@ public class PlayerPickupItemListener implements Listener {
 		if(pickup.getItemMeta() == null) return;
 		if(pickup.getItemMeta().getDisplayName() == null) return;
 		
+		Item item = ItemLoader.fromBukkit(pickup);
+		if(item == null) return;
+		
 		if(pickup.getItemMeta().getDisplayName().equals(GOLD_CURRENCY_DISPLAY_NAME)) { // Both colors are necessary!
 			int amount = pickup.getAmount();
 			user.giveGold(amount * 1.0);
@@ -47,15 +50,17 @@ public class PlayerPickupItemListener implements Listener {
 						.stream()
 						.filter(i -> i != null)
 						.filter(i -> i.getItemMeta() != null)
+						.filter(i -> i.getItemMeta().getDisplayName() != null)
 						.filter(i -> i.getItemMeta().getDisplayName().equals(GOLD_CURRENCY_DISPLAY_NAME))
-						.forEach(i -> event.getPlayer().getInventory().remove(i));
+						.forEach(i -> {
+							event.getPlayer().getInventory().remove(i);
+							plugin.getGameObjectRegistry().removeFromDatabase(item);
+						});
 				}
 			}.runTaskLater(plugin, 1);
 			return;
 		}
 		
-		Item item = ItemLoader.fromBukkit(pickup);
-		if(item == null) return;
 		for(int i = 0; i < pickup.getAmount(); i++) {
 			user.giveItem(item, true, true, false);
 		}

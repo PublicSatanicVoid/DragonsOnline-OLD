@@ -39,21 +39,21 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 	@Override
 	public Floor loadObject(StorageAccess storageAccess) {
 		lazyLoadAll();
-		Floor floor = new Floor(storageManager, storageAccess);
+		Floor floor = new Floor(storageManager, storageAccess, false); // Only need to specify if superflat the first time around
 		masterRegistry.getRegisteredObjects().add(floor);
 		worldNameToFloor.put(floor.getWorldName(), floor);
 		floorNameToFloor.put(floor.getFloorName(), floor);
 		return floor;
 	}
 	
-	public Floor registerNew(String floorName, String worldName, String displayName, int levelMin) {
+	public Floor registerNew(String floorName, String worldName, String displayName, int levelMin, boolean superflat) {
 		lazyLoadAll();
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.FLOOR, new Document("floorName", floorName)
 				.append("worldName", worldName)
 				.append("displayName", displayName)
 				.append("levelMin", levelMin));
 		
-		Floor floor = new Floor(storageManager, storageAccess);
+		Floor floor = new Floor(storageManager, storageAccess, superflat);
 		masterRegistry.getRegisteredObjects().add(floor);
 		worldNameToFloor.put(worldName, floor);
 		floorNameToFloor.put(floorName, floor);

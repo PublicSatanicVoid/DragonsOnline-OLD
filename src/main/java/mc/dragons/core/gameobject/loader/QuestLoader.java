@@ -54,7 +54,7 @@ public class QuestLoader extends GameObjectLoader<Quest> {
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("name", name)
 				.append("questName", questName)
-				.append("lvMin", lvMin)
+				.append("lvMin", lvMin )
 				.append("steps", new ArrayList<Document>());
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.QUEST, data);
 		Quest quest = new Quest(storageManager, storageAccess);

@@ -1,5 +1,6 @@
 package mc.dragons.core.gameobject.loader;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import org.bson.Document;
@@ -12,6 +13,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.npc.NPC;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.npc.NPCClass;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
@@ -21,6 +23,7 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	
 	private static NPCLoader INSTANCE;
 	private GameObjectRegistry masterRegistry;
+	private boolean allPermanentLoaded = false;
 	
 	private NPCLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
@@ -36,6 +39,7 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	
 	@Override
 	public NPC loadObject(StorageAccess storageAccess) {
+		lazyLoadAllPermanent();
 		Location loc = StorageUtil.docToLoc((Document)storageAccess.get("lastLocation"));
 		Entity e = loc.getWorld().spawnEntity(loc, EntityType.valueOf((String)storageAccess.get("entityType")));
 		return new NPC(e, storageManager, storageAccess);
@@ -50,16 +54,17 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	}
 	
 	public NPC registerNew(Entity entity, NPCClass npcClass) {
-		return registerNew(entity, npcClass.getClassName(), npcClass.getName(), npcClass.getMaxHealth(), npcClass.getLevel(), npcClass.isHostile());
+		return registerNew(entity, npcClass.getClassName(), npcClass.getName(), npcClass.getMaxHealth(), npcClass.getLevel(), npcClass.getNPCType(), npcClass.hasAI(), npcClass.isImmortal());
 	}
 	
 	public NPC registerNew(World world, Location spawnLocation, NPCClass npcClass) {
-		return registerNew(world, spawnLocation, npcClass.getEntityType(), npcClass.getClassName(), npcClass.getName(), npcClass.getMaxHealth(), npcClass.getLevel(), npcClass.isHostile());
+		return registerNew(world, spawnLocation, npcClass.getEntityType(), npcClass.getClassName(), npcClass.getName(), 
+				npcClass.getMaxHealth(), npcClass.getLevel(), npcClass.getNPCType(), npcClass.hasAI(), npcClass.isImmortal());
 	}
 	
-	public NPC registerNew(World world, Location spawnLocation, EntityType entityType, String className, String name, double maxHealth, int level, boolean hostile) {
+	public NPC registerNew(World world, Location spawnLocation, EntityType entityType, String className, String name, double maxHealth, int level, NPCType npcType, boolean ai, boolean immortal) {
 		Entity e = world.spawnEntity(spawnLocation, entityType);
-		return registerNew(e, className, name, maxHealth, level, hostile);
+		return registerNew(e, className, name, maxHealth, level, npcType, ai, immortal);
 	}
 	
 	public static NPC fromBukkit(Entity entity) {
@@ -72,7 +77,8 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 		return (NPC) entity.getMetadata("handle").get(0).value();
 	}
 	
-	public NPC registerNew(Entity entity, String className, String name, double maxHealth, int level, boolean hostile) {
+	public NPC registerNew(Entity entity, String className, String name, double maxHealth, int level, NPCType npcType, boolean ai, boolean immortal) {
+		lazyLoadAllPermanent();
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
 				.append("name", name)
@@ -80,7 +86,9 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 				.append("maxHealth", maxHealth)
 				.append("lastLocation", StorageUtil.locToDoc(entity.getLocation()))
 				.append("level", level)
-				.append("hostile", hostile)
+				.append("npcType", npcType.toString())
+				.append("ai", ai)
+				.append("immortal", immortal)
 				.append("lootTable", new Document());
 		// TODO: enforce hostile/non-hostile behavior???
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC, data);
@@ -90,5 +98,24 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 		entity.setMetadata("handle", new FixedMetadataValue(plugin, npc));
 		masterRegistry.getRegisteredObjects().add(npc);
 		return npc;
+	}
+
+	public void loadAllPermanent(boolean force) {
+		if(allPermanentLoaded && !force) return;
+		allPermanentLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
+		masterRegistry.removeFromRegistry(GameObjectType.NPC);
+		storageManager.getAllStorageAccess(GameObjectType.NPC, new Document("$or", 
+				Arrays.asList(new Document("npcType", NPCType.QUEST.toString()), 
+							  new Document("npcType", NPCType.SHOP.toString()))))
+			.stream()
+			.forEach((storageAccess) -> {
+				NPC npc = loadObject(storageAccess);
+				Dragons.getInstance().getLogger().fine("Loaded permanent NPC: " + npc.getIdentifier() + " of class " + npc.getNPCClass().getClassName());
+				masterRegistry.getRegisteredObjects().add(npc);
+		});
+	}
+	
+	public void lazyLoadAllPermanent() {
+		loadAllPermanent(false);
 	}
 }

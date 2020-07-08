@@ -87,6 +87,14 @@ public class ItemClass extends GameObject {
 		setData("armor", armor);
 	}
 	
+	public double getSpeedBoost() {
+		return (double) getData("speedBoost");
+	}
+	
+	public void setSpeedBoost(double speedBoost) {
+		setData("speedBoost", speedBoost);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public List<String> getLore() {
 		return (List<String>) getData("lore");

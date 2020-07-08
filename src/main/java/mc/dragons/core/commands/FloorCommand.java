@@ -46,7 +46,7 @@ public class FloorCommand implements CommandExecutor {
 		
 		if(args.length == 0) {
 			// TODO: decouple floor name (no spaces) and display name (can have spaces)
-			sender.sendMessage(ChatColor.YELLOW + "/floor -c <FloorName> <WorldName> <LevelMin>" + ChatColor.GRAY + " create a new floor");
+			sender.sendMessage(ChatColor.YELLOW + "/floor -c <FloorName> <WorldName> <LevelMin> [-superflat]" + ChatColor.GRAY + " create a new floor");
 			sender.sendMessage(ChatColor.YELLOW + "/floor -l" + ChatColor.GRAY + " list all floors");
 			sender.sendMessage(ChatColor.YELLOW + "/floor -s <FloorName>" + ChatColor.GRAY + " view info about floor");
 			sender.sendMessage(ChatColor.YELLOW + "/floor -s <FloorName> name <NewFloorName>" + ChatColor.GRAY + " change floor name");
@@ -64,7 +64,13 @@ public class FloorCommand implements CommandExecutor {
 				return true;
 			}
 			sender.sendMessage(ChatColor.GREEN + "Creating world " + args[2] + "...");
-			floorLoader.registerNew(args[1], args[2], args[2], Integer.valueOf(args[3]));
+			boolean superflat = false;
+			if(args.length > 4) {
+				if(args[4].equalsIgnoreCase("-superflat")) {
+					superflat = true;
+				}
+			}
+			floorLoader.registerNew(args[1], args[2], args[2], Integer.valueOf(args[3]), superflat);
 			sender.sendMessage(ChatColor.GREEN + "Created new floor successfully!");
 			return true;
 		}
