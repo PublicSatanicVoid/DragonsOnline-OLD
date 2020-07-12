@@ -1,9 +1,12 @@
 package mc.dragons.core.events;
 
+import java.util.logging.Logger;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.User;
 
@@ -14,6 +17,7 @@ import mc.dragons.core.gameobject.user.User;
  *
  */
 public class QuitEventListener implements Listener {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 
 	//private UserLoader userLoader;
 	
@@ -23,6 +27,7 @@ public class QuitEventListener implements Listener {
 	
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event) {
+		LOGGER.finer("Quit event on " + event.getPlayer().getName());
 		User user = UserLoader.fromPlayer(event.getPlayer());
 		user.handleQuit();
 		event.setQuitMessage(null);

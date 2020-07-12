@@ -64,7 +64,7 @@ public class ItemCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> name <DisplayName>" + ChatColor.GRAY + " set item class display name");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> namecolor <Color>" + ChatColor.GRAY + " set item class display name color");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> lore <add <Lore>|remove <LineNo>]>" + ChatColor.GRAY + " view/edit item class lore");
-			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> type|lvmin|cooldown|unbreakable|damage|armor|speedboost <Value>" + ChatColor.GRAY + " edit item class data");
+			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> type|lvmin|cooldown|unbreakable|undroppable|damage|armor|speedboost <Value>" + ChatColor.GRAY + " edit item class data");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> push" + ChatColor.GRAY + " update all items of this class with updated stats (will revert custom changes made to these items)");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -d <ItemClass>" + ChatColor.GRAY + " delete item class");
 			sender.sendMessage(ChatColor.YELLOW + "/item give <ItemClass>" + ChatColor.GRAY + " receive an item of the specified class");
@@ -90,7 +90,7 @@ public class ItemCommand implements CommandExecutor {
 				boolean unbreakable = Boolean.valueOf(args[6]);
 				double damage = Double.valueOf(args[7]);
 				double armor = Double.valueOf(args[8]);
-				ItemClass itemClass = itemClassLoader.registerNew(args[2], "Unnamed Item", ChatColor.YELLOW, type, lvMin, cooldown, 0.0, unbreakable, damage, armor, new ArrayList<>());
+				ItemClass itemClass = itemClassLoader.registerNew(args[2], "Unnamed Item", ChatColor.YELLOW, type, lvMin, cooldown, 0.0, unbreakable, false, damage, armor, new ArrayList<>());
 				if(itemClass == null) {
 					sender.sendMessage(ChatColor.RED + "An error occurred! Does a class by this name already exist?");
 					return true;
@@ -131,6 +131,7 @@ public class ItemCommand implements CommandExecutor {
 					sender.sendMessage(ChatColor.GRAY + "Cooldown: " + ChatColor.GREEN + itemClass.getCooldown());
 					sender.sendMessage(ChatColor.GRAY + "Walk Speed Boost: " + ChatColor.GREEN + itemClass.getSpeedBoost());
 					sender.sendMessage(ChatColor.GRAY + "Unbreakable: " + ChatColor.GREEN + itemClass.isUnbreakable());
+					sender.sendMessage(ChatColor.GRAY + "Undroppable: " + ChatColor.GREEN + itemClass.isUndroppable());
 					sender.sendMessage(ChatColor.GRAY + "Lore:");
 					for(String loreLine : itemClass.getLore()) {
 						sender.sendMessage(ChatColor.GREEN + " " + loreLine);
@@ -196,6 +197,12 @@ public class ItemCommand implements CommandExecutor {
 					itemClass.setUnbreakable(unbreakable);
 					sender.sendMessage(ChatColor.GREEN + "Updated unbreakable status successfully.");
 					return true;
+				}
+				
+				if(args[3].equalsIgnoreCase("undroppable")) {
+					boolean undroppable = Boolean.valueOf(args[4]);
+					itemClass.setUndroppable(undroppable);
+					sender.sendMessage(ChatColor.GREEN + "Updated undroppable status successfully.");
 				}
 				
 				if(args[3].equalsIgnoreCase("damage")) {

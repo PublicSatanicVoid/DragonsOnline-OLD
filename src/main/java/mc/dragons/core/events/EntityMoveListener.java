@@ -1,6 +1,7 @@
 package mc.dragons.core.events;
 
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -17,8 +18,10 @@ import mc.dragons.core.gameobject.npc.NPC;
 import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.util.StringUtil;
 
 public class EntityMoveListener extends PacketAdapter {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private RegionLoader regionLoader;
 	//private UserLoader userLoader;
 	
@@ -31,6 +34,7 @@ public class EntityMoveListener extends PacketAdapter {
 	@Override
 	public void onPacketSending(PacketEvent event) {
 		Entity entity = event.getPacket().getEntityModifier(event.getPlayer().getWorld()).read(0);
+		LOGGER.finest("Entity move on " + StringUtil.entityToString(entity));
 		if(!entity.hasMetadata("handle")) {
 			return;
 		}

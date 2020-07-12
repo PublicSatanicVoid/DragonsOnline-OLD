@@ -3,8 +3,9 @@ package mc.dragons.core.gameobject.npc;
 import java.util.List;
 
 import org.bson.Document;
-import org.bukkit.ChatColor;
+import org.bukkit.scheduler.BukkitRunnable;
 
+import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.loader.NPCClassLoader;
 import mc.dragons.core.gameobject.loader.QuestLoader;
@@ -97,9 +98,17 @@ public class NPCAction {
 			user.updateQuestProgress(quest, quest.getSteps().get(0));
 			break;
 		case BEGIN_DIALOGUE:
-			for(String line : dialogue) {
-				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
-			}
+			user.setDialogueBatch(null, npcClass.getName(), dialogue);
+			new BukkitRunnable() {
+				@Override public void run() {
+					if(!user.nextDialogue()) {
+						this.cancel();
+					}
+				}
+			}.runTaskTimer(Dragons.getInstance(), 0L, 20L * 2);
+//			for(String line : dialogue) {
+//				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
+//			}
 			break;
 		}
 	}

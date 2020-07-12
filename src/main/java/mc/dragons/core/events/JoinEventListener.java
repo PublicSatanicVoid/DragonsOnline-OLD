@@ -1,6 +1,7 @@
 package mc.dragons.core.events;
 
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -28,6 +29,8 @@ import mc.dragons.core.gameobject.user.User.PunishmentType;
  *
  */
 public class JoinEventListener implements Listener {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
+	
 	private UserLoader userLoader;
 	private ItemClassLoader itemClassLoader;
 	private ItemLoader itemLoader;
@@ -46,6 +49,8 @@ public class JoinEventListener implements Listener {
 	
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
+		LOGGER.info("Join event on " + event.getPlayer().getName());
+		
 		Player player = event.getPlayer();
 		UUID uuid = player.getUniqueId();
 		User user = userLoader.loadObject(uuid);

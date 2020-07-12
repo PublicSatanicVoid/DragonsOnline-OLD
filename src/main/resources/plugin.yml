@@ -9,13 +9,20 @@ commands:
     description: Clear your inventory. This cannot be undone.
   dragons:
     description: DRAGONS
+  fastforwarddialogue:
+    description: Fast-forward through active quest dialogue.
+  feedback:
+    description: Send feedback about the game.
   friend:
     description: Add, accept, and manage friends.
   ilostthelousystick:
-  japanesesymbolforbeginner:
+  myquests:
+    description: List your active quests.
   party:
     description: Create, join, and manage parties.
     aliases: p
+  friend:
+    description: Make friends!
     aliases: f
   relore:
     description: Change the lore of your held item. Requires blacksmithing level 40+ and costs 100 Gold per use. (Bypassed by MOD permission level)
@@ -74,19 +81,25 @@ commands:
   region:
     description: (GM) Manage regions.
     aliases: r
-  reloadquests:
-    description: (GM) Reload all quests from the database.
   restat:
     description: (GM) Change the stats of your held item.
   updatestats:
     description: (GM) Update a player's stats.
+  debug:
+    description: (ADMIN) Oops! Something went wrong.
   experiment:
     description: (ADMIN) Access experimental features.
+  lag:
+    description: (ADMIN) View server lag statistics.
   loglevel:
     description: (ADMIN) Set console log level.
   rank:
     description: (ADMIN) Set a player's rank.
+  reloadquests:
+    description: (ADMIN) Reload all quests. 
   removepunishment:
     description: (ADMIN) Remove a punishment from a player's history.
+  serveroptions:
+    description: (ADMIN) Manage server settings.
   verifygameintegrity:
     description: (ADMIN) Verify integrity of active game environment.

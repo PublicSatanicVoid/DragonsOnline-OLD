@@ -2,6 +2,7 @@ package mc.dragons.core.gameobject.loader;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.Location;
@@ -16,22 +17,24 @@ import mc.dragons.core.storage.StorageManager;
 public class FloorLoader extends GameObjectLoader<Floor> {
 	
 	private static FloorLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
+	
+	private static Map<String, Floor> worldNameToFloor;
+	private static Map<String, Floor> floorNameToFloor;
 	
 	private GameObjectRegistry masterRegistry;
-	private Map<String, Floor> worldNameToFloor;
-	private Map<String, Floor> floorNameToFloor;
 	private boolean allLoaded = false;
 	
 	private FloorLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
 		masterRegistry = instance.getGameObjectRegistry();
-		worldNameToFloor = new HashMap<>();
-		floorNameToFloor = new HashMap<>();
 	}
 	
 	public static synchronized FloorLoader getInstance(Dragons instance, StorageManager storageManager) {
 		if(INSTANCE == null) {
 			INSTANCE = new FloorLoader(instance, storageManager);
+			worldNameToFloor = new HashMap<>();
+			floorNameToFloor = new HashMap<>();
 		}
 		return INSTANCE;
 	}
@@ -39,6 +42,7 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 	@Override
 	public Floor loadObject(StorageAccess storageAccess) {
 		lazyLoadAll();
+		LOGGER.fine("Loading floor " + storageAccess.getIdentifier());
 		Floor floor = new Floor(storageManager, storageAccess, false); // Only need to specify if superflat the first time around
 		masterRegistry.getRegisteredObjects().add(floor);
 		worldNameToFloor.put(floor.getWorldName(), floor);
@@ -48,6 +52,7 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 	
 	public Floor registerNew(String floorName, String worldName, String displayName, int levelMin, boolean superflat) {
 		lazyLoadAll();
+		LOGGER.fine("Registering new floor " + floorName + " (world " + worldName + ", displayName " + displayName + ", lvMin " + levelMin + ", superflat=" + superflat + ")");
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.FLOOR, new Document("floorName", floorName)
 				.append("worldName", worldName)
 				.append("displayName", displayName)
@@ -60,28 +65,25 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 		return floor;
 	}
 	
-	public Floor fromWorldName(String worldName) {
-		lazyLoadAll();
+	public static Floor fromWorldName(String worldName) {
 		return worldNameToFloor.get(worldName);
 	}
 	
-	public Floor fromWorld(World world) {
-		lazyLoadAll();
+	public static Floor fromWorld(World world) {
 		return worldNameToFloor.get(world.getName());
 	}
 	
-	public Floor fromLocation(Location loc) {
-		lazyLoadAll();
+	public static Floor fromLocation(Location loc) {
 		return worldNameToFloor.get(loc.getWorld().getName());
 	}
 	
-	public Floor fromFloorName(String floorName) {
-		lazyLoadAll();
+	public static Floor fromFloorName(String floorName) {
 		return floorNameToFloor.get(floorName);
 	}
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
+		LOGGER.fine("Loading all floors...");
 		allLoaded = true;
 		masterRegistry.removeFromRegistry(GameObjectType.FLOOR);
 		storageManager.getAllStorageAccess(GameObjectType.FLOOR).stream().forEach((storageAccess) -> {

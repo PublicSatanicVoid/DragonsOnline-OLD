@@ -28,16 +28,17 @@ public class SystemLogonCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.GREEN + "System Logon Service");
 			if(sender instanceof Player) {
 				sender.sendMessage(ChatColor.YELLOW + "/syslogon <profile> <password>");
-				sender.sendMessage(ChatColor.YELLOW + "/syslogon -p <new permission level>");
+				sender.sendMessage(ChatColor.YELLOW + "/syslogon -password <current password> <new password>");
+				sender.sendMessage(ChatColor.YELLOW + "/syslogon -level <new permission level>");
 				sender.sendMessage(ChatColor.YELLOW + "/syslogon -logout");
 			}
-			sender.sendMessage(ChatColor.YELLOW + "/syslogon -c <new profile> <password> <max. permission level>");
-			sender.sendMessage(ChatColor.YELLOW + "/syslogon -u <profile> <new max. permission level>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -create <new profile> <password> <max. permission level>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -update <profile> <new max. permission level>");
 			sender.sendMessage(ChatColor.DARK_GRAY + "Note: Profiles and passwords cannot contain spaces.");
 			return true;
 		}
 		
-		if(args[0].equalsIgnoreCase("-c")) {
+		if(args[0].equalsIgnoreCase("-create")) {
 			if(sender instanceof Player) {
 				Player player = (Player) sender;
 				User user = UserLoader.fromPlayer(player);
@@ -48,7 +49,7 @@ public class SystemLogonCommand implements CommandExecutor {
 			return true;
 		}
 		
-		if(args[0].equalsIgnoreCase("-u")) {
+		if(args[0].equalsIgnoreCase("-update")) {
 			if(sender instanceof Player) {
 				Player player = (Player) sender;
 				User user = UserLoader.fromPlayer(player);
@@ -67,7 +68,7 @@ public class SystemLogonCommand implements CommandExecutor {
 		Player player = (Player) sender;
 		User user = UserLoader.fromPlayer(player);
 		
-		if(args[0].equalsIgnoreCase("-p")) {
+		if(args[0].equalsIgnoreCase("-level")) {
 			if(user.getSystemProfile() == null) {
 				sender.sendMessage(ChatColor.RED + "You're not logged in to a system profile.");
 				return true;
@@ -79,6 +80,22 @@ public class SystemLogonCommand implements CommandExecutor {
 			else {
 				sender.sendMessage(ChatColor.RED + "Could not change active permission level: requested permission level exceeds maximum level for this profile.");
 			}
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-password")) {
+			if(user.getSystemProfile() == null) {
+				sender.sendMessage(ChatColor.RED + "You're not logged in to a system profile.");
+				return true;
+			}
+			if(!SystemProfileLoader.passwordHash(args[1]).equals(user.getSystemProfile().getPasswordHash())) {
+				sender.sendMessage(ChatColor.RED + "Incorrect current password!");
+				return true;
+			}
+			SystemProfileLoader.setProfilePassword(user.getSystemProfile().getProfileName(), args[2]);
+			SystemProfileLoader.logoutProfile(user.getSystemProfile().getProfileName());
+			user.setActivePermissionLevel(PermissionLevel.USER);
+			sender.sendMessage(ChatColor.GREEN + "Password updated successfully. Please log back in to your system profile with your updated credentials.");
 			return true;
 		}
 		

@@ -1,9 +1,11 @@
 package mc.dragons.core.gameobject;
 
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 
+import mc.dragons.core.Dragons;
 import mc.dragons.core.storage.Identifier;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
@@ -25,6 +27,7 @@ import mc.dragons.core.storage.StorageManager;
  *
  */
 public abstract class GameObject {
+	protected Logger LOGGER = Dragons.getInstance().getLogger();
 	
 	protected StorageManager storageManager;
 	protected StorageAccess storageAccess;
@@ -52,6 +55,7 @@ public abstract class GameObject {
 		this.storageManager = storageManager;
 		this.storageAccess = storageManager.getStorageAccess(type, uuid);
 		this.localData = new Document();
+		LOGGER.finer("Initializing game object (" + type + ", " + uuid + ", " + storageManager + ")");
 	}
 	
 	/**
@@ -65,6 +69,7 @@ public abstract class GameObject {
 		this.storageManager = storageManager;
 		this.storageAccess = storageAccess;
 		this.localData = new Document();
+		LOGGER.finer("Initializing game object (" + storageManager + ", " + storageAccess + ")");
 	}
 	
 	/**
@@ -76,6 +81,7 @@ public abstract class GameObject {
 	 */
 	protected void setData(String key, Object value) {
 		storageAccess.set(key, value);
+		LOGGER.finest("Set data on " + this + ": " + key + "=" + value);
 	}
 	
 	/**
@@ -85,6 +91,7 @@ public abstract class GameObject {
 	 */
 	protected void update(Document document) {
 		storageAccess.update(document);
+		LOGGER.finest("Update document on " + this + ": " + document);
 	}
 	
 	/**
@@ -155,7 +162,7 @@ public abstract class GameObject {
 	 * saving, such as time lived.
 	 */
 	public void autoSave() {
-		
+		LOGGER.fine("Auto-saving game object " + getIdentifier());
 	}
 	
 	/**

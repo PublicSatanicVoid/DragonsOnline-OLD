@@ -32,21 +32,6 @@ public class GameObjectRegistry {
 	}
 	
 	/**
-	 * Converts the storageAccess for a game object into 
-	 * the game object itself.
-	 * 
-	 * @param storageAccess
-	 * @return
-	 */
-	/*public GameObject loadObject(StorageAccess storageAccess) {
-		String type = (String) storageAccess.get("type");
-		GameObjectType objType = GameObjectType.get(type);
-		GameObject gameObject = objType.getLoader().loadObject(storageAccess);
-		registeredObjects.add(gameObject);
-		return gameObject;
-	}*/
-	
-	/**
 	 * Subclasses should override this to register a
 	 * new instance of their object. This superclass
 	 * method will not register a new object.

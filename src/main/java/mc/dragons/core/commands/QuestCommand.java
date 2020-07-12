@@ -227,6 +227,7 @@ public class QuestCommand implements CommandExecutor {
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add PATHFIND_NPC <NpcReferenceName> [GotoStage#WhenComplete]");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add BEGIN_DIALOGUE <NpcClass>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add GIVE_XP <XPAmount>");
+						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add GOTO_STAGE <Stage#> <ShouldNotify>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action add <GIVE_ITEM|TAKE_ITEM> <ItemClass> <Amount>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action dialogue add <Action#> <Dialogue>");
 						sender.sendMessage(ChatColor.RED + "/quest -s <ShortName> stage <Stage#> action branch add <TriggerType> <TriggerParam|NONE> <GoToStage#>");
@@ -253,7 +254,7 @@ public class QuestCommand implements CommandExecutor {
 							step.addAction(QuestAction.giveXPAction(quest, Integer.valueOf(args[7])));
 						}
 						else if(args[6].equalsIgnoreCase("GOTO_STAGE") || args[6].equalsIgnoreCase("GoToStage")) {
-							step.addAction(QuestAction.goToStageAction(quest, Integer.valueOf(args[7])));
+							step.addAction(QuestAction.goToStageAction(quest, Integer.valueOf(args[7]), Boolean.valueOf(args[8])));
 						}
 						else if(args[6].equalsIgnoreCase("TAKE_ITEM") || args[6].equalsIgnoreCase("TakeItem")) {
 							step.addAction(QuestAction.takeItemAction(quest, itemClassLoader.getItemClassByClassName(args[7]), args.length == 8 ? 1 : Integer.valueOf(args[8])));
@@ -281,7 +282,7 @@ public class QuestCommand implements CommandExecutor {
 					if(args[5].equalsIgnoreCase("branch")) {
 						if(args[6].equalsIgnoreCase("add")) {
 							QuestTrigger trigger = makeTrigger(TriggerType.valueOf(args[8]), Arrays.copyOfRange(args, 9, args.length));
-							QuestAction action = QuestAction.goToStageAction(quest, Integer.valueOf(args[7]));
+							QuestAction action = QuestAction.goToStageAction(quest, Integer.valueOf(args[7]), false);
 							step.addBranchPoint(trigger, action);
 							sender.sendMessage(ChatColor.GREEN + "Added branch point successfully.");
 							return true;
@@ -321,7 +322,7 @@ public class QuestCommand implements CommandExecutor {
 		case NEVER:
 			return QuestTrigger.never();
 		case KILL_NPC:
-			return QuestTrigger.onKillNPC(npcClassLoader.getNPCClassByClassName(params[0]));
+			return QuestTrigger.onKillNPC(npcClassLoader.getNPCClassByClassName(params[0]), Integer.valueOf(params[1]));
 		case CLICK_NPC:
 			return QuestTrigger.onClickNPC(npcClassLoader.getNPCClassByClassName(params[0]));
 		case ENTER_REGION:
@@ -343,6 +344,8 @@ public class QuestCommand implements CommandExecutor {
 		case NEVER:
 			return "Never triggered (limbo)";
 		case KILL_NPC:
+			return "Target NPC Class: " + ChatColor.GREEN + trigger.getNPCClass().getName() + " (" + trigger.getNPCClass().getClassName() + ")"
+				+ ChatColor.GRAY + "; Quantity: " + ChatColor.GREEN + trigger.getQuantity();
 		case CLICK_NPC:
 			return "Target NPC Class: " + ChatColor.GREEN + trigger.getNPCClass().getName() + " (" + trigger.getNPCClass().getClassName() + ")";
 		case ENTER_REGION:

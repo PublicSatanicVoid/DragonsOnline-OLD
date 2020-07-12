@@ -1,5 +1,7 @@
 package mc.dragons.core.events;
 
+import java.util.logging.Logger;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -16,8 +18,10 @@ import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.util.StringUtil;
 
 public class EntityDeathEventListener implements Listener {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 
 	private GameObjectRegistry registry;
 	//private UserLoader userLoader;
@@ -33,6 +37,7 @@ public class EntityDeathEventListener implements Listener {
 	
 	@EventHandler
 	public void onEntityDeath(EntityDeathEvent event) {
+		LOGGER.finer("Death event on " + StringUtil.entityToString(event.getEntity()));
 		Player player = event.getEntity().getKiller();
 		
 		User user = UserLoader.fromPlayer(player);

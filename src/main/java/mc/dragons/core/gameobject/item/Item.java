@@ -34,43 +34,69 @@ public class Item extends GameObject {
 	private ItemStack itemStack;
 	
 	private List<String> getCompleteLore(String[] customLore) {
-		List<String> lore = new ArrayList<>(Arrays.asList(ChatColor.GRAY + "Lv Min: " + getLevelMin()));
-		lore.add(HiddenStringUtil.encodeString(getUUID().toString())); // appears as a blank line
-		lore.addAll(Arrays.asList(customLore).stream().map(line -> ChatColor.LIGHT_PURPLE + " " + ChatColor.ITALIC + line).collect(Collectors.toList()));
+		String dataTag = HiddenStringUtil.encodeString(getUUID().toString());
+		List<String> lore = new ArrayList<>(Arrays.asList(ChatColor.GRAY + "Lv Min: " + getLevelMin() + dataTag));
+		//lore.add(HiddenStringUtil.encodeString(getUUID().toString())); // appears as a blank line
 		if(customLore.length > 0) {
 			lore.add("");
 		}
-		lore.add(ChatColor.GRAY + "When equipped:");
+		lore.addAll(Arrays.asList(customLore).stream().map(line -> ChatColor.LIGHT_PURPLE + " " + ChatColor.ITALIC + line).collect(Collectors.toList()));
+
+		List<String> statsMeta = new ArrayList<>();
 		if(getDamage() > 0.0) {
-			lore.add(ChatColor.GREEN + " " + getDamage() + " Damage");
+			statsMeta.add(ChatColor.GREEN + " " + getDamage() + " Damage");
 		}
 		if(getArmor() > 0.0) {
-			lore.add(ChatColor.GREEN + " " + getArmor() + " Armor");
+			statsMeta.add(ChatColor.GREEN + " " + getArmor() + " Armor");
 		}
 		if(isWeapon()) {
-			lore.add(ChatColor.GREEN + " " + getCooldown() + "s Attack Speed");
+			statsMeta.add(ChatColor.GREEN + " " + getCooldown() + "s Attack Speed");
 		}
 		if(getSpeedBoost() != 0.0) {
-			lore.add(" " + (getSpeedBoost() < 0.0 ? ChatColor.RED + "" : ChatColor.GREEN + "+") + getSpeedBoost() + " Walk Speed");
+			statsMeta.add(" " + (getSpeedBoost() < 0.0 ? ChatColor.RED + "" : ChatColor.GREEN + "+") + getSpeedBoost() + " Walk Speed");
+		}
+		if(isUnbreakable() || isUndroppable()) {
+			statsMeta.add("");
+		}
+		if(isUnbreakable()) {
+			statsMeta.add(ChatColor.BLUE + "Unbreakable");
+		}
+		if(isUndroppable()) {
+			statsMeta.add(ChatColor.BLUE + "Undroppable");
 		}
 		if(isCustom()) {
-			lore.addAll(Arrays.asList("", ChatColor.DARK_AQUA + "Custom Item"));
+			statsMeta.addAll(Arrays.asList("", ChatColor.DARK_AQUA + "Custom Item"));
+		}
+		if(statsMeta.size() > 0) {
+			lore.addAll(Arrays.asList("", ChatColor.GRAY + "When equipped:"));
+			lore.addAll(statsMeta);
 		}
 		return lore;
 	}
 	
 	public Item(ItemStack itemStack, StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
+		LOGGER.fine("Constructing RPG Item (" + itemStack + ", " + storageManager + ", " + storageAccess + ")");
 		ItemMeta meta = itemStack.getItemMeta();
 		meta.setDisplayName(ChatColor.RESET + getDecoratedName());
 		meta.setLore(getCompleteLore(getLore().toArray(new String[getLore().size()])));
 		meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
 		itemStack.setItemMeta(meta);
+		itemStack.setAmount(getQuantity());
 		if(isUnbreakable()) {
 			meta.spigot().setUnbreakable(true);
 			//Dragons.getInstance().getBridge().setItemStackUnbreakable(itemStack, true);
 		}
 		this.itemStack = itemStack;
+	}
+	
+	public void updateItemStackData() {
+		ItemMeta meta = itemStack.getItemMeta();
+		meta.setDisplayName(ChatColor.RESET + getDecoratedName());
+		meta.setLore(getCompleteLore(getLore().toArray(new String[getLore().size()])));
+		meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+		itemStack.setItemMeta(meta);
+		itemStack.setAmount(getQuantity());
 	}
 	
 	public boolean isCustom() {
@@ -83,6 +109,19 @@ public class Item extends GameObject {
 	
 	public String getClassName() {
 		return (String) getData("className");
+	}
+	
+	public int getQuantity() {
+		return (int) getData("quantity");
+	}
+	
+	public void setQuantity(int quantity) {
+		setData("quantity", quantity);
+		itemStack.setAmount(quantity);
+	}
+	
+	public void resyncQuantityFromBukkit() {
+		setData("quantity", itemStack.getAmount());
 	}
 	
 	public String getName() {
@@ -259,6 +298,14 @@ public class Item extends GameObject {
 		setData("unbreakable", true);
 	}
 	
+	public boolean isUndroppable() {
+		return (boolean) getData("undroppable");
+	}
+	
+	public void setUndroppable(boolean undroppable) {
+		setData("undroppable", undroppable);
+	}
+	
 	public double getDamage() {
 		return (double) getData("damage");
 	}
@@ -288,6 +335,11 @@ public class Item extends GameObject {
 		return itemStack;
 	}
 	
+	public void setItemStack(ItemStack itemStack) {
+		this.itemStack = itemStack;
+		updateItemStackData();
+	}
+	
 //	public void setItemStack(ItemStack itemStack) {
 //		ItemLoader.updateBukkitReference(this.itemStack, itemStack, this);
 //		this.itemStack = itemStack;
@@ -303,5 +355,10 @@ public class Item extends GameObject {
 	
 	public boolean hasCooldownRemaining() {
 		return Math.abs(getCooldownRemaining()) > 0.001;
+	}
+	
+	public void autoSave() {
+		super.autoSave();
+		setData("quantity", itemStack.getAmount());
 	}
 }

@@ -16,6 +16,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
@@ -39,7 +40,7 @@ public class MongoStorageManager implements StorageManager {
 	
 	private Logger LOGGER;
 	
-	public MongoStorageManager(Dragons instance, String host, String port, String username, String password, String authDB) {
+	public MongoStorageManager(Dragons instance, String host, int port, String username, String password, String authDB) {
 		ConnectionString connectionString = new ConnectionString("mongodb://" + username + ":" + password + "@" + host + ":" + port + "/?authSource=" + authDB);
 		MongoClientSettings settings = MongoClientSettings.builder()
 				.applyConnectionString(connectionString)
@@ -53,7 +54,7 @@ public class MongoStorageManager implements StorageManager {
 			LOGGER.severe("Could not connect to MongoDB");
 		}
 		else {
-			LOGGER.info("Successfully connected to MongoDB");
+			LOGGER.info("Successfully connected to MongoDB on port " + port);
 		}
 		database = client.getDatabase(MongoConfig.DATABASE);
 		gameObjectCollection = database.getCollection(MongoConfig.GAMEOBJECTS_COLLECTION);
@@ -69,7 +70,7 @@ public class MongoStorageManager implements StorageManager {
 		if(result == null) {
 			return null;
 		}
-		UUID uuid = (UUID) result.get("_id");
+		UUID uuid = result.get("_id", UUID.class);
 		Identifier identifier = new Identifier(objectType, uuid);
 		
 		LOGGER.finer("Retrieved storage access for type " + objectType.toString());
@@ -96,7 +97,7 @@ public class MongoStorageManager implements StorageManager {
 		
 		for(Document d : dbResults) {
 			Identifier id = new Identifier(GameObjectType.get(d.getString("type")),
-					(UUID) d.get("_id"));
+					d.get("_id", UUID.class));
 			result.add(new MongoStorageAccess(id, d, gameObjectCollection));
 		}
 		
@@ -122,7 +123,7 @@ public class MongoStorageManager implements StorageManager {
 
 	public StorageAccess getNewStorageAccess(GameObjectType objectType, Document initialData) {
 		Identifier identifier = new Identifier(objectType, initialData.containsKey("_id")
-				? (UUID) initialData.get("_id")
+				? initialData.get("_id", UUID.class)
 				: UUID.randomUUID());
 		StorageAccess storageAccess = new MongoStorageAccess(identifier, initialData, gameObjectCollection);
 		Document insert = new Document(identifier.getDocument());
@@ -140,8 +141,8 @@ public class MongoStorageManager implements StorageManager {
 
 	@Override
 	public void push(GameObjectType objectType, Document selector, Document update) {
-		gameObjectCollection.updateMany(new Document(selector).append("type", objectType.toString()), new Document("$set", update));
-		LOGGER.finer("Pushing database mass update for type " + objectType.toString());
+		UpdateResult result = gameObjectCollection.updateMany(new Document(selector).append("type", objectType.toString()), new Document("$set", update));
+		LOGGER.finer("Pushed database mass update for type " + objectType.toString() + ". Matched " + result.getMatchedCount() + ", modified " + result.getModifiedCount());
 	}
 
 }

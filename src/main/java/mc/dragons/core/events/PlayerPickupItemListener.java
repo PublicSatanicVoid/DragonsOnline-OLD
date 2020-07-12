@@ -1,6 +1,7 @@
 package mc.dragons.core.events;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
@@ -16,6 +17,7 @@ import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.User;
 
 public class PlayerPickupItemListener implements Listener {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	//UserLoader userLoader;
 	Dragons plugin;
 	//ItemLoader itemLoader;
@@ -38,6 +40,9 @@ public class PlayerPickupItemListener implements Listener {
 		if(pickup.getItemMeta().getDisplayName() == null) return;
 		
 		Item item = ItemLoader.fromBukkit(pickup);
+		
+		LOGGER.finer("Pickup item event on " + event.getPlayer().getName() + " of " + (item == null ? "null" : item.getIdentifier()));
+		
 		if(item == null) return;
 		
 		if(pickup.getItemMeta().getDisplayName().equals(GOLD_CURRENCY_DISPLAY_NAME)) { // Both colors are necessary!
@@ -61,8 +66,12 @@ public class PlayerPickupItemListener implements Listener {
 			return;
 		}
 		
-		for(int i = 0; i < pickup.getAmount(); i++) {
-			user.giveItem(item, true, true, false);
-		}
+		item.setQuantity(pickup.getAmount());
+		user.giveItem(item, true, false, false);
+//		for(int i = 0; i < pickup.getAmount(); i++) {
+//			user.giveItem(item, true, true, false);
+//		}
+		event.setCancelled(true);
+		event.getItem().remove();
 	}
 }

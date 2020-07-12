@@ -84,7 +84,7 @@ public class FloorCommand implements CommandExecutor {
 			return true;
 		}
 		
-		Floor floor = floorLoader.fromFloorName(args[1]);
+		Floor floor = FloorLoader.fromFloorName(args[1]);
 		if(floor == null) {
 			sender.sendMessage(ChatColor.RED + "That floor does not exist!");
 			return true;

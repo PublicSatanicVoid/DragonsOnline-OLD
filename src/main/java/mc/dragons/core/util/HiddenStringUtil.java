@@ -12,8 +12,8 @@ import org.bukkit.ChatColor;
 public class HiddenStringUtil {
 
 	// String constants. TODO Change them to something unique to avoid conflict with other plugins!
-	private static final String SEQUENCE_HEADER = "" + ChatColor.RESET + ChatColor.UNDERLINE + ChatColor.RESET;
-	private static final String SEQUENCE_FOOTER = "" + ChatColor.RESET + ChatColor.ITALIC + ChatColor.RESET;
+	private static final String SEQUENCE_HEADER = "" + ChatColor.RESET + stringToColors("SeqHdr") + ChatColor.RESET;
+	private static final String SEQUENCE_FOOTER = "" + ChatColor.RESET + stringToColors("SeqFtr")+ ChatColor.RESET;
 	
 	
 	public static String encodeString(String hiddenString) {

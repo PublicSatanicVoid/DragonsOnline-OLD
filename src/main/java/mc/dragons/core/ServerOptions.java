@@ -1,6 +1,11 @@
 package mc.dragons.core;
 
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import mc.dragons.core.tasks.AutoSaveTask;
+import mc.dragons.core.tasks.SpawnEntityTask;
+import mc.dragons.core.tasks.VerifyGameIntegrityTask;
 
 /**
  * Settings for the local server.
@@ -9,32 +14,37 @@ import java.util.logging.Level;
  *
  */
 public class ServerOptions {
+	private Logger LOGGER;
+	
+	
 	private int autoSavePeriodTicks;
 	private boolean autoSaveEnabled;
 	
 	private int customSpawnRate;
 	private boolean customSpawningEnabled;
-	private int spawnLevelCap;
 	
 	private int deathCountdown;
 	
 	private int verifyIntegritySweepRate;
+	private boolean verifyIntegrityEnabled;
 	
 	private double defaultWalkSpeed;
 	
 	private Level logLevel;
 	
 	public ServerOptions() {
+		LOGGER = Dragons.getInstance().getLogger();
+		
 		autoSavePeriodTicks = 20 * 60 * 5;
 		autoSaveEnabled = true;
 		
 		customSpawnRate = 20 * 5;
 		customSpawningEnabled = true;
-		spawnLevelCap = 10;
 		
 		deathCountdown = 10;
 		
 		verifyIntegritySweepRate = 20 * 60;
+		verifyIntegrityEnabled = true;
 		
 		defaultWalkSpeed = 0.2;
 		
@@ -42,13 +52,14 @@ public class ServerOptions {
 	}
 	
 	
-	/**
-	 * Changes to this will not take effect until a restart.
-	 * 
-	 * @param period
-	 */
 	public void setAutoSavePeriodTicks(int period) {
 		this.autoSavePeriodTicks = period;
+		Dragons.getInstance().getAutoSaveRunnable().cancel();
+		AutoSaveTask task = new AutoSaveTask(Dragons.getInstance());
+		Dragons.getInstance().setAutoSaveRunnable(task);
+		task.runTaskTimer(Dragons.getInstance(), 0L, period);
+		
+		LOGGER.config("Set auto-save period to " + period + " ticks");
 	}
 	
 	public int getAutoSavePeriodTicks() {
@@ -56,9 +67,9 @@ public class ServerOptions {
 	}
 	
 	
-	
 	public void setAutoSaveEnabled(boolean enabled) {
 		this.autoSaveEnabled = enabled;
+		LOGGER.config((enabled ? "Enabled" : "Disabled") + " auto-saving");
 	}
 	
 	public boolean isAutoSaveEnabled() {
@@ -66,14 +77,14 @@ public class ServerOptions {
 	}
 	
 	
-	
-	/**
-	 * Changes to this will not take effect until a restart.
-	 * 
-	 * @param enabled
-	 */
 	public void setCustomSpawnRate(int rate) {
 		this.customSpawnRate = rate;
+		Dragons.getInstance().getSpawnEntityRunnable().cancel();
+		SpawnEntityTask task = new SpawnEntityTask(Dragons.getInstance());
+		Dragons.getInstance().setSpawnEntityRunnable(task);
+		task.runTaskTimer(Dragons.getInstance(), 0L, rate);
+		
+		LOGGER.config("Custom spawn rate set to " + rate + "s.");
 	}
 	
 	public int getCustomSpawnRate() {
@@ -83,7 +94,8 @@ public class ServerOptions {
 	
 	
 	public void setCustomSpawningEnabled(boolean enabled) {
-		this.customSpawningEnabled = true;
+		this.customSpawningEnabled = enabled;
+		LOGGER.config((enabled ? "Enabled" : "Disabled") + " custom spawning");
 	}
 	
 	public boolean isCustomSpawningEnabled() {
@@ -91,18 +103,9 @@ public class ServerOptions {
 	}
 	
 	
-	
-	public void setSpawnLevelCap(int cap) {
-		this.spawnLevelCap = cap;
-	}
-	
-	public int getSpawnLevelCap() {
-		return spawnLevelCap;
-	}
-	
-	
 	public void setDeathCountdown(int seconds) {
 		this.deathCountdown = seconds;
+		LOGGER.config("Default death countdown set to " + seconds + "s");
 	}
 	
 	public int getDeathCountdown() {
@@ -110,13 +113,13 @@ public class ServerOptions {
 	}
 	
 	
-	/**
-	 * Changes to this will not take effect until a restart.
-	 * 
-	 * @param rate
-	 */
 	public void setVerifyIntegritySweepRate(int rate) {
 		this.verifyIntegritySweepRate = rate;
+		Dragons.getInstance().getVerifyGameIntegrityRunnable().cancel();
+		VerifyGameIntegrityTask task = new VerifyGameIntegrityTask(Dragons.getInstance());
+		Dragons.getInstance().setVerifyGameIntegrityRunnable(task);
+		task.runTaskTimer(Dragons.getInstance(), 0L, rate);
+		LOGGER.config("Game verification sweep rate set to " + rate + "s.");
 	}
 	
 	public int getVerifyIntegritySweepRate() {
@@ -124,8 +127,19 @@ public class ServerOptions {
 	}
 	
 	
+	public void setVerifyIntegrityEnabled(boolean enabled) {
+		this.verifyIntegrityEnabled = enabled;
+		LOGGER.config((enabled ? "Enabled" : "Disabled") + " game environment verification");
+	}
+	
+	public boolean isVerifyIntegrityEnabled() {
+		return verifyIntegrityEnabled;
+	}
+	
+	
 	public void setDefaultWalkSpeed(double speed) {
 		this.defaultWalkSpeed = speed;
+		LOGGER.config("Default walk speed set to " + speed);
 	}
 	
 	public double getDefaultWalkSpeed() {
@@ -135,8 +149,8 @@ public class ServerOptions {
 	
 	public void setLogLevel(Level level) {
 		this.logLevel = level;
-		Dragons.getInstance().getLogger().setLevel(level);
-		Dragons.getInstance().getLogger().info("Log level changed to " + level);
+		LOGGER.setLevel(level);
+		LOGGER.info("Log level changed to " + level);
 	}
 	
 	public Level getLogLevel() {

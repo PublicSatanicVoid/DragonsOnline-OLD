@@ -2,6 +2,7 @@ package mc.dragons.core.gameobject.loader;
 
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.Location;
@@ -18,10 +19,12 @@ import mc.dragons.core.gameobject.npc.NPCClass;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.StorageUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class NPCLoader extends GameObjectLoader<NPC> {
 	
 	private static NPCLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	private boolean allPermanentLoaded = false;
 	
@@ -40,6 +43,7 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	@Override
 	public NPC loadObject(StorageAccess storageAccess) {
 		lazyLoadAllPermanent();
+		LOGGER.fine("Loading NPC " + storageAccess.getIdentifier());
 		Location loc = StorageUtil.docToLoc((Document)storageAccess.get("lastLocation"));
 		Entity e = loc.getWorld().spawnEntity(loc, EntityType.valueOf((String)storageAccess.get("entityType")));
 		return new NPC(e, storageManager, storageAccess);
@@ -78,6 +82,7 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	}
 	
 	public NPC registerNew(Entity entity, String className, String name, double maxHealth, int level, NPCType npcType, boolean ai, boolean immortal) {
+		LOGGER.fine("Registering new NPC of class " + className + " using Bukkit entity " + StringUtil.entityToString(entity));
 		lazyLoadAllPermanent();
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
@@ -102,6 +107,7 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 
 	public void loadAllPermanent(boolean force) {
 		if(allPermanentLoaded && !force) return;
+		LOGGER.fine("Loading all permanent NPCs...");
 		allPermanentLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.NPC);
 		storageManager.getAllStorageAccess(GameObjectType.NPC, new Document("$or", 

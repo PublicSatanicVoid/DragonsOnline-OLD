@@ -17,6 +17,7 @@ public class Structure extends GameObject {
 
 	public Structure(StorageManager storageManager) {
 		super(GameObjectType.STRUCTURE, storageManager);
+		LOGGER.fine("Constructing structure (" + storageManager + ")");
 		// TODO: Specific instantiation via storageAccess
 	}
 	

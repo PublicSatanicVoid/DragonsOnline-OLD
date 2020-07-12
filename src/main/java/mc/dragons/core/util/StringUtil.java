@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 import org.bson.Document;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 
 public class StringUtil {
@@ -46,6 +47,10 @@ public class StringUtil {
 		}
 		if(result.equals("")) return "";
 		return result.substring(0, result.length() - 1);
+	}
+	
+	public static String entityToString(Entity e) {
+		return e.getType() + " " + e + " (#" + e.getEntityId() + ")";
 	}
 	
 	public static String concatArgs(String[] args, int startIndex, int endIndex) {

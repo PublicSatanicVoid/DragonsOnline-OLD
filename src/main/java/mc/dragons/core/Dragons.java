@@ -1,5 +1,7 @@
 package mc.dragons.core;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -8,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.apache.logging.log4j.LogManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.craftbukkit.v1_8_R3.util.ForwardLogHandler;
@@ -22,7 +25,10 @@ import mc.dragons.core.bridge.Bridge;
 import mc.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
 import mc.dragons.core.commands.BypassDeathCountdownCommand;
 import mc.dragons.core.commands.ClearInventoryCommand;
+import mc.dragons.core.commands.DebugCommand;
 import mc.dragons.core.commands.ExperimentCommand;
+import mc.dragons.core.commands.FastForwardDialogueCommand;
+import mc.dragons.core.commands.FeedbackCommand;
 import mc.dragons.core.commands.FloorCommand;
 import mc.dragons.core.commands.GamemodeCommand;
 import mc.dragons.core.commands.GoToFloorCommand;
@@ -30,18 +36,20 @@ import mc.dragons.core.commands.GodModeCommand;
 import mc.dragons.core.commands.ILostTheLousyStickCommand;
 import mc.dragons.core.commands.InfoCommand;
 import mc.dragons.core.commands.ItemCommand;
-import mc.dragons.core.commands.JapaneseSymbolForBeginnerCommand;
 import mc.dragons.core.commands.KickCommand;
+import mc.dragons.core.commands.LagCommand;
 import mc.dragons.core.commands.LogLevelCommand;
+import mc.dragons.core.commands.MyQuestsCommand;
 import mc.dragons.core.commands.NPCCommand;
 import mc.dragons.core.commands.PunishCommands;
 import mc.dragons.core.commands.QuestCommand;
 import mc.dragons.core.commands.RankCommand;
 import mc.dragons.core.commands.RegionCommand;
-import mc.dragons.core.commands.ReloadQuestsCommand;
+import mc.dragons.core.commands.ReloadObjectsCommands;
 import mc.dragons.core.commands.ReloreCommand;
 import mc.dragons.core.commands.RemovePunishmentCommand;
 import mc.dragons.core.commands.RenameCommand;
+import mc.dragons.core.commands.ServerOptionsCommand;
 import mc.dragons.core.commands.SystemLogonCommand;
 import mc.dragons.core.commands.TestQuestCommand;
 import mc.dragons.core.commands.UnPunishCommands;
@@ -54,7 +62,9 @@ import mc.dragons.core.events.DeathEventListener;
 import mc.dragons.core.events.EntityDamageByEntityEventListener;
 import mc.dragons.core.events.EntityDeathEventListener;
 import mc.dragons.core.events.EntityMoveListener;
+import mc.dragons.core.events.EntityTargetEventListener;
 import mc.dragons.core.events.HungerChangeEventListener;
+import mc.dragons.core.events.InventoryEventListeners;
 import mc.dragons.core.events.JoinEventListener;
 import mc.dragons.core.events.MoveEventListener;
 import mc.dragons.core.events.PlayerDropItemListener;
@@ -80,7 +90,10 @@ import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.impl.MongoConfig;
 import mc.dragons.core.storage.impl.MongoStorageManager;
 import mc.dragons.core.tasks.AutoSaveTask;
+import mc.dragons.core.tasks.LagMeter;
+import mc.dragons.core.tasks.LagMonitorTask;
 import mc.dragons.core.tasks.SpawnEntityTask;
+import mc.dragons.core.tasks.VerifyGameIntegrityTask;
 
 /**
  * The main plugin class for Dragons RPG.
@@ -96,8 +109,11 @@ public class Dragons extends JavaPlugin {
 	private StorageManager storageManager;
 	private GameObjectRegistry gameObjectRegistry;
 	
-	private AutoSaveTask autoSaveTask;
-	private SpawnEntityTask spawnEntityTask;
+	private BukkitRunnable autoSaveRunnable;
+	private BukkitRunnable spawnEntityRunnable;
+	private BukkitRunnable verifyGameIntegrityRunnable;
+	private LagMeter lagMeter;
+	private LagMonitorTask lagMonitorTask;
 	
 	private ServerOptions serverOptions;
 	
@@ -135,8 +151,11 @@ public class Dragons extends JavaPlugin {
 		storageManager = new MongoStorageManager(this, MongoConfig.HOST, MongoConfig.PORT, MongoConfig.USER, MongoConfig.PASSWORD, MongoConfig.AUTH_DB);
 		gameObjectRegistry = new GameObjectRegistry(this, storageManager);
 		
-		autoSaveTask = AutoSaveTask.getInstance(this);
-		spawnEntityTask = SpawnEntityTask.getInstance(this);
+		autoSaveRunnable = new AutoSaveTask(this);
+		spawnEntityRunnable = new SpawnEntityTask(this);
+		verifyGameIntegrityRunnable = new VerifyGameIntegrityTask(this);
+		lagMeter = new LagMeter();
+		lagMonitorTask = new LagMonitorTask();
 		
 		serverOptions = new ServerOptions();
 		getLogger().setLevel(serverOptions.getLogLevel());
@@ -184,6 +203,8 @@ public class Dragons extends JavaPlugin {
 		pluginManager.registerEvents(new HungerChangeEventListener(), this);
 		pluginManager.registerEvents(new PlayerInteractEntityListener(), this);
 		pluginManager.registerEvents(new WorldEventListeners(), this);
+		pluginManager.registerEvents(new EntityTargetEventListener(this), this);
+		pluginManager.registerEvents(new InventoryEventListeners(), this);
 		
 		getLogger().info("Loading game objects...");
 		// Order here is important! If floors aren't loaded first, then their worlds aren't loaded first, 
@@ -215,7 +236,6 @@ public class Dragons extends JavaPlugin {
 		getCommand("rename").setExecutor(new RenameCommand());
 		getCommand("relore").setExecutor(new ReloreCommand());
 		getCommand("verifygameintegrity").setExecutor(new VerifyGameIntegrityCommand(this));
-		getCommand("japanesesymbolforbeginner").setExecutor(new JapaneseSymbolForBeginnerCommand());
 		CommandExecutor gamemodeCommandExecutor = new GamemodeCommand();
 		getCommand("gamemode").setExecutor(gamemodeCommandExecutor);
 		getCommand("gma").setExecutor(gamemodeCommandExecutor);
@@ -232,18 +252,27 @@ public class Dragons extends JavaPlugin {
 		getCommand("unmute").setExecutor(unPunishCommandsExecutor);
 		getCommand("viewpunishments").setExecutor(new ViewPunishmentsCommand());
 		getCommand("ilostthelousystick").setExecutor(new ILostTheLousyStickCommand());
-		getCommand("reloadquests").setExecutor(new ReloadQuestsCommand());
 		getCommand("removepunishment").setExecutor(new RemovePunishmentCommand());
 		CommandExecutor vanishCommandsExecutor = new VanishCommands();
 		getCommand("vanish").setExecutor(vanishCommandsExecutor);
 		getCommand("unvanish").setExecutor(vanishCommandsExecutor);
 		getCommand("updatestats").setExecutor(new UpdateStatsCommand());
 		getCommand("loglevel").setExecutor(new LogLevelCommand());
+		getCommand("debug").setExecutor(new DebugCommand());
+		getCommand("lag").setExecutor(new LagCommand());
+		ReloadObjectsCommands reloadObjectsCommandsExecutor = new ReloadObjectsCommands();
+		getCommand("reloadquests").setExecutor(reloadObjectsCommandsExecutor);
+		getCommand("serveroptions").setExecutor(new ServerOptionsCommand());
+		getCommand("feedback").setExecutor(new FeedbackCommand());
+		getCommand("fastforwarddialogue").setExecutor(new FastForwardDialogueCommand());
+		getCommand("myquests").setExecutor(new MyQuestsCommand());
 		
 		getLogger().info("Scheduling tasks...");
-		Bukkit.getScheduler().runTaskTimer(this, () -> autoSaveTask.run(false), 0, serverOptions.getAutoSavePeriodTicks());
-		Bukkit.getScheduler().runTaskTimer(this, () -> spawnEntityTask.run(), 0, serverOptions.getCustomSpawnRate());
-		Bukkit.getScheduler().runTaskTimer(this, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "verifygameintegrity -resolve -silent"), 0, serverOptions.getVerifyIntegritySweepRate());
+		autoSaveRunnable.runTaskTimer(this, 0L, serverOptions.getAutoSavePeriodTicks());
+		spawnEntityRunnable.runTaskTimer(this, 0L, serverOptions.getCustomSpawnRate());
+		verifyGameIntegrityRunnable.runTaskTimer(this, 0L, serverOptions.getVerifyIntegritySweepRate());
+		lagMeter.runTaskTimer(this, 100L, 1L);
+		lagMonitorTask.runTaskAsynchronously(this);
 		
 		getLogger().info("Registering packet listeners...");
 		ProtocolLibrary.getProtocolManager().addPacketListener(new EntityMoveListener(this));
@@ -251,12 +280,28 @@ public class Dragons extends JavaPlugin {
 	
 	@Override
 	public void onDisable() {
-		autoSaveTask.run(true);
-		for(World w : getServer().getWorlds()) {
-			for(Entity e : w.getEntities()) {
-				e.remove();
+		((AutoSaveTask) autoSaveRunnable).run(true);
+		for(Entity e : getEntities()) {
+			e.remove();
+		}
+	}
+	
+	public List<Chunk> getLoadedChunks() {
+		List<Chunk> chunks = new ArrayList<Chunk>();
+		for (World w : Bukkit.getWorlds()) {
+			for (Chunk c : w.getLoadedChunks()) {
+				chunks.add(c);
 			}
 		}
+		return chunks;
+	}
+	
+	public List<Entity> getEntities() {
+		List<Entity> entities = new ArrayList<Entity>();
+		for (World w : Bukkit.getWorlds()) {
+			entities.addAll(w.getEntities());
+		}
+		return entities;
 	}
 	
 	public static Dragons getInstance() {
@@ -277,6 +322,34 @@ public class Dragons extends JavaPlugin {
 	
 	public Bridge getBridge() {
 		return bridge;
+	}
+	
+	public List<Double> getTPSRecord() {
+		return lagMonitorTask.getTPSRecord();
+	}
+	
+	public BukkitRunnable getAutoSaveRunnable() {
+		return autoSaveRunnable;
+	}
+	
+	public void setAutoSaveRunnable(BukkitRunnable runnable) {
+		autoSaveRunnable = runnable;
+	}
+	
+	public BukkitRunnable getSpawnEntityRunnable() {
+		return spawnEntityRunnable;
+	}
+	
+	public void setSpawnEntityRunnable(BukkitRunnable runnable) {
+		spawnEntityRunnable = runnable;
+	}
+	
+	public BukkitRunnable getVerifyGameIntegrityRunnable() {
+		return verifyGameIntegrityRunnable;
+	}
+	
+	public void setVerifyGameIntegrityRunnable(BukkitRunnable runnable) {
+		verifyGameIntegrityRunnable = runnable;
 	}
 
 }

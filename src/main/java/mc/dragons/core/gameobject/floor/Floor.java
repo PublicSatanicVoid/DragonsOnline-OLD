@@ -5,7 +5,6 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 
-import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
@@ -28,7 +27,8 @@ public class Floor extends GameObject {
 	
 	public Floor(StorageManager storageManager, StorageAccess storageAccess, boolean superflat) {
 		super(storageManager, storageAccess);
-		Dragons.getInstance().getLogger().info("Loading floor " + getFloorName() + " [" + getWorldName() + "]");
+		LOGGER.fine("Constructing floor (" + storageManager + ", " + storageAccess + ", superflat=" + superflat + ")");
+		LOGGER.info("Loading floor " + getFloorName() + " [" + getWorldName() + "]");
 		WorldCreator creator = WorldCreator.name(getWorldName());
 		if(superflat) {
 			creator.type(WorldType.FLAT);

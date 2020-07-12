@@ -13,7 +13,7 @@ import mc.dragons.core.gameobject.loader.StructureLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 
 /**
- * Possible types of a {@link mc.dragons.core.gameobject.GameObject}.
+ * Possible types of a {@link GameObject}.
  * 
  * A registry is associated with each object type, which is responsible for loading
  * and creating instances of that type.

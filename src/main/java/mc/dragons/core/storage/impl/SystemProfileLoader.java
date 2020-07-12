@@ -35,10 +35,11 @@ public class SystemProfileLoader {
 	
 	public static SystemProfile loadProfile(User user, String profileName, String profilePassword) {
 		if(!isAvailable(profileName, user.getName())) return null;
-		Document profile = profileCollection.find(new Document("profileName", profileName).append("profilePasswordHash", passwordHash(profilePassword))).first();
+		String hash = passwordHash(profilePassword);
+		Document profile = profileCollection.find(new Document("profileName", profileName).append("profilePasswordHash", hash)).first();
 		if(profile == null) return null;
 		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("currentUser", user.getName())));
-		SystemProfile systemProfile = new SystemProfile(user, profileName, PermissionLevel.valueOf(profile.getString("maxPermissionLevel")));
+		SystemProfile systemProfile = new SystemProfile(user, profileName, hash, PermissionLevel.valueOf(profile.getString("maxPermissionLevel")));
 		return systemProfile;
 	}
 	
@@ -57,15 +58,18 @@ public class SystemProfileLoader {
 		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("maxPermissionLevel", newMaxPermissionLevel.toString())));
 	}
 	
+	public static void setProfilePassword(String profileName, String newPassword) {
+		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("profilePasswordHash", passwordHash(newPassword))));
+	}
+	
 	public static void logoutProfile(String profileName) {
 		profileCollection.updateOne(new Document("profileName", profileName), new Document("$set", new Document("currentUser", "")));
 	}
 	
-	private static String passwordHash(String password) {
+	public static String passwordHash(String password) {
 		try {
 			return new BigInteger(1, MessageDigest.getInstance("SHA-256").digest(("DragonsOnline System Logon b091283a#1*&AJK@83" + password).getBytes(StandardCharsets.UTF_8))).toString(16);
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return "SHA256HashFailedNoSuchAlgorithmException";
 		}

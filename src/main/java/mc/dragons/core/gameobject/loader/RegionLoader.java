@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.Location;
@@ -16,10 +17,12 @@ import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.StorageUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class RegionLoader extends GameObjectLoader<Region> {
 
 	private static RegionLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private boolean allLoaded = false;
 	private GameObjectRegistry masterRegistry;
 	private Map<String, Set<Region>> worldToRegions;
@@ -41,6 +44,7 @@ public class RegionLoader extends GameObjectLoader<Region> {
 	@Override
 	public Region loadObject(StorageAccess storageAccess) {
 		lazyLoadAll();
+		LOGGER.fine("Loading region " + storageAccess.getIdentifier());
 		return new Region(storageManager, storageAccess);
 	}
 	
@@ -88,6 +92,8 @@ public class RegionLoader extends GameObjectLoader<Region> {
 	
 	public Region registerNew(String name, Location corner1, Location corner2) {
 		lazyLoadAll();
+		LOGGER.fine("Registering new region " + name + " (" + StringUtil.locToString(corner1) + " [" + corner1.getWorld().getName() + "] -> " +
+				StringUtil.locToString(corner2) + " [" + corner2.getWorld().getName() + "]");
 		if(corner1.getWorld() != corner2.getWorld()) {
 			throw new IllegalArgumentException("Corners must be in the same world");
 		}
@@ -109,6 +115,7 @@ public class RegionLoader extends GameObjectLoader<Region> {
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
+		LOGGER.fine("Loading all regions...");
 		allLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.REGION);
 		storageManager.getAllStorageAccess(GameObjectType.REGION).stream().forEach((storageAccess) -> {

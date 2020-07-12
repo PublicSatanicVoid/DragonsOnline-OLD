@@ -10,9 +10,10 @@ public class MongoConfig {
 	public static final String USER = "admin";
 	public static final String PASSWORD = "RemoteSrv792128342#5qQ!";
 	public static final String HOST = "73.65.109.123";
-	public static final String PORT = "27017";
+	public static final int PORT = 27017;
 	public static final String AUTH_DB = "test";
 	public static final String DATABASE = "dragons";
 	public static final String GAMEOBJECTS_COLLECTION = "gameobjects";
 	public static final String SYSPROFILES_COLLECTION = "sysprofiles";
+	public static final String FEEDBACK_COLLECTION = "feedback";
 }

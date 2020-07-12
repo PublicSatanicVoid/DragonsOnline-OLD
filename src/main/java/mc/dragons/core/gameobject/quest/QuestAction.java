@@ -76,6 +76,7 @@ public class QuestAction {
 		}
 		else if(questAction.action == QuestActionType.GOTO_STAGE) {
 			questAction.stage = action.getInteger("stage");
+			questAction.notify = action.getBoolean("notify");
 		}
 		else if(questAction.action == QuestActionType.TELEPORT_NPC) {
 			questAction.npcReferenceName = action.getString("npcReferenceName");
@@ -152,11 +153,12 @@ public class QuestAction {
 		return action;
 	}
 	
-	public static QuestAction goToStageAction(Quest quest, int stage) {
+	public static QuestAction goToStageAction(Quest quest, int stage, boolean notify) {
 		QuestAction action = new QuestAction();
 		action.action = QuestActionType.GOTO_STAGE;
 		action.stage = stage;
 		action.quest = quest;
+		action.notify = notify;
 		return action;
 	}
 	
@@ -189,6 +191,7 @@ public class QuestAction {
 	private int stage;
 	private ItemClass itemClass;
 	private int quantity;
+	private boolean notify; // For GOTO_STAGE
 	
 	public Document toDocument() {
 		Document document = new Document("type", action.toString());
@@ -197,17 +200,19 @@ public class QuestAction {
 			document.append("tpTo", StorageUtil.locToDoc(to));
 			break;
 		case BEGIN_DIALOGUE:
-			document.append("dialogue", dialogue).append("npcClass", npcClassShortName);
+			npcClassDeferredLoad();
+			document.append("dialogue", dialogue).append("npcClass", npcClass.getClassName());
 			break;
 		case SPAWN_NPC:
-			document.append("npcClass", npcClassShortName)
+			npcClassDeferredLoad();
+			document.append("npcClass", npcClass.getClassName())
 				.append("npcReferenceName", npcReferenceName);
 			break;
 		case GIVE_XP:
 			document.append("xp", xpAmount);
 			break;
 		case GOTO_STAGE:
-			document.append("stage", stage);
+			document.append("stage", stage).append("notify", notify);
 			break;
 		case TELEPORT_NPC:
 		case PATHFIND_NPC:
@@ -287,17 +292,25 @@ public class QuestAction {
 		}
 		else if(action == QuestActionType.BEGIN_DIALOGUE) {
 			npcClassDeferredLoad();
-			// TODO: add delays and stuff
-			for(String line : dialogue) {
-				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
-			}
+			user.setDialogueBatch(quest, npcClass.getName(), dialogue);
+			new BukkitRunnable() {
+				@Override public void run() {
+					if(!user.nextDialogue()) {
+						user.updateQuests(null);
+						this.cancel();
+					}
+				}
+			}.runTaskTimer(Dragons.getInstance(), 0L, 20L * 2);
+//			for(String line : dialogue) {
+//				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
+//			}
 		}
 		else if(action == QuestActionType.GIVE_XP) {
 			user.addXP(xpAmount);
 			user.getPlayer().sendMessage(ChatColor.LIGHT_PURPLE + "+ " + xpAmount + " XP" + ChatColor.GRAY + " from quest " + quest.getQuestName());
 		}
 		else if(action == QuestActionType.GOTO_STAGE) {
-			user.updateQuestProgress(quest, quest.getSteps().get(stage), false);
+			user.updateQuestProgress(quest, quest.getSteps().get(stage), notify);
 			user.debug("    - going to stage " + stage + " (" + quest.getSteps().get(stage).getStepName() + ")");
 			new BukkitRunnable() {
 				@Override public void run() {
@@ -336,17 +349,17 @@ public class QuestAction {
 			}
 			for(Item item : take) {
 				//user.getPlayer().getInventory().remove(itemStack);
-				user.takeItem(item, true, false);
+				user.takeItem(item, item.getQuantity(), true, false);
 			}
 			if(taken > quantity) {
 				Item compensate = itemLoader.registerNew(itemClass);
-				compensate.getItemStack().setAmount(taken - quantity);
+				compensate.setQuantity(taken - quantity);
 				user.giveItem(compensate, true, false, true);
 			}
 		}
 		else if(action == QuestActionType.GIVE_ITEM) {
 			Item item = itemLoader.registerNew(itemClass);
-			item.getItemStack().setAmount(quantity);
+			item.setQuantity(quantity);
 			user.giveItem(item);
 		}
 		return false;

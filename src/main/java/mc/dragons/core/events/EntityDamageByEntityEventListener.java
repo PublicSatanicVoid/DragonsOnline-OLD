@@ -1,8 +1,10 @@
 package mc.dragons.core.events;
 
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,8 +27,10 @@ import mc.dragons.core.gameobject.user.SkillType;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.MathUtil;
 import mc.dragons.core.util.ProgressBarUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class EntityDamageByEntityEventListener implements Listener {
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 
 	//private UserLoader userLoader;
 	private RegionLoader regionLoader;
@@ -40,11 +44,10 @@ public class EntityDamageByEntityEventListener implements Listener {
 		plugin = instance;
 	}
 	
-	// TODO: take into account held item & armor.
-	// TODO: refactor. Have one double for damageAdd and one double for damageSubtract.
 	@EventHandler
 	public void onEntityDamage(EntityDamageByEntityEvent event) {
 		
+		LOGGER.finer("Damage event on " + StringUtil.entityToString(event.getEntity()) + " by " + StringUtil.entityToString(event.getDamager()));
 		
 		Entity damager = event.getDamager();
 		User userDamager = null;
@@ -52,7 +55,12 @@ public class EntityDamageByEntityEventListener implements Listener {
 		if(damager instanceof Player) {
 			userDamager = UserLoader.fromPlayer((Player) damager);
 		}
-		else {
+		else if(damager instanceof Arrow) {
+			Arrow arrow = (Arrow) damager;
+			if(arrow.getShooter() instanceof Entity) {
+				npcDamager = NPCLoader.fromBukkit((Entity) arrow.getShooter());
+			}
+		} else {
 			npcDamager = NPCLoader.fromBukkit(damager);
 		}
 		
@@ -69,11 +77,13 @@ public class EntityDamageByEntityEventListener implements Listener {
 					event.setCancelled(true);
 					if(userDamager != null) {
 						Item item = ItemLoader.fromBukkit(userDamager.getPlayer().getItemInHand());
-						if(item.getClassName().equals("Special:ImmortalOverride")) {
-							npcTarget.getEntity().remove();
-							plugin.getGameObjectRegistry().removeFromDatabase(npcTarget);
-							userDamager.getPlayer().sendMessage(ChatColor.GREEN + "Removed NPC successfully.");
-							return;
+						if(item != null) {
+							if(item.getClassName().equals("Special:ImmortalOverride")) {
+								npcTarget.getEntity().remove();
+								plugin.getGameObjectRegistry().removeFromDatabase(npcTarget);
+								userDamager.getPlayer().sendMessage(ChatColor.GREEN + "Removed NPC successfully.");
+								return;
+							}
 						}
 					}
 					npcTarget.updateHealthBar();
@@ -119,6 +129,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 		if(userDamager == null) { // NPC damager, user target
 			for(Region region : regions) {
 				if(!Boolean.valueOf(region.getFlags().getString("pve"))) {
+					userTarget.debug("- Cancelled damage due to a region " + region.getName() + " PVE flag = false");
 					event.setCancelled(true);
 					return;
 				}

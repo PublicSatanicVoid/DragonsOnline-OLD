@@ -40,7 +40,7 @@ public class Quest extends GameObject {
 	
 	public Quest(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
-		
+		LOGGER.fine("Constructing quest (" + storageManager + ", " + storageAccess + ")");
 		steps = new ArrayList<>();
 		referenceNames = HashBasedTable.create();
 		

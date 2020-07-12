@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -20,6 +21,7 @@ import mc.dragons.core.storage.StorageManager;
 public class UserLoader extends GameObjectLoader<User> {
 
 	private static UserLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	
 	private static Map<Player, User> playerToUser;
 	private GameObjectRegistry masterRegistry;
@@ -50,8 +52,10 @@ public class UserLoader extends GameObjectLoader<User> {
 	
 	@Override
 	public User loadObject(StorageAccess storageAccess) {
+		LOGGER.fine("Loading user by storage access " + storageAccess.getIdentifier());
 		for(User user : playerToUser.values()) {
 			if(user.getIdentifier().equals(storageAccess.getIdentifier())) {
+				LOGGER.finer(" - Found user in cache, fixing and returning");
 				return fixUser(user);
 			}
 		}
@@ -63,8 +67,10 @@ public class UserLoader extends GameObjectLoader<User> {
 	}
 
 	public User loadObject(UUID uuid) {
+		LOGGER.fine("Loading user by UUID " + uuid);
 		for(User user : playerToUser.values()) {
 			if(user.getUUID().equals(uuid)) {
+				LOGGER.finer(" - Found user in cache, fixing and returning");
 				return fixUser(user);
 			}
 		}
@@ -74,8 +80,10 @@ public class UserLoader extends GameObjectLoader<User> {
 	}
 	
 	public User loadObject(String username) {
+		LOGGER.fine("Loading user by username " + username);
 		for(User user : playerToUser.values()) {
 			if(user.getName().equalsIgnoreCase(username)) {
+				LOGGER.finer(" - Found user in cache, fixing and returning");
 				return fixUser(user);
 			}
 		}
@@ -85,6 +93,7 @@ public class UserLoader extends GameObjectLoader<User> {
 	}
 	
 	public User registerNew(Player player) {
+		LOGGER.fine("Registering new user " + player.getName());
 		Document skills = new Document();
 		Document skillProgress = new Document();
 		for(SkillType skill : SkillType.values()) {
@@ -119,11 +128,13 @@ public class UserLoader extends GameObjectLoader<User> {
 	}
 	
 	public void removeStalePlayer(Player player) {
+		LOGGER.fine("Removing stale player " + player.getName());
 		masterRegistry.getRegisteredObjects().remove(playerToUser.get(player));
 		playerToUser.remove(player);
 	}
 	
 	public void unregister(User user) {
+		LOGGER.fine("Locally unregistering player " + user.getName());
 		masterRegistry.getRegisteredObjects().remove(user);
 		playerToUser.remove(user.getPlayer());
 	}

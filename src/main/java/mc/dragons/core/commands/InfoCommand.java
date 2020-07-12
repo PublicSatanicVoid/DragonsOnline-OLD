@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObjectType;
-import mc.dragons.core.gameobject.floor.Floor;
 import mc.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
@@ -27,12 +26,12 @@ import mc.dragons.core.util.StringUtil;
 public class InfoCommand implements CommandExecutor {
 	private UserLoader userLoader;
 	private RegionLoader regionLoader;
-	private FloorLoader floorLoader;
+	//private FloorLoader floorLoader;
 	
 	public InfoCommand(Dragons instance) {
 		userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 		regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
-		floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
+		//floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
 	}
 	
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -95,7 +94,7 @@ public class InfoCommand implements CommandExecutor {
 		sender.sendMessage(ChatColor.YELLOW + "Gold Balance: " + ChatColor.RESET + targetUser.getGold());
 		if(targetPlayer == null) {
 			sender.sendMessage(ChatColor.YELLOW + "Cached Location: " + ChatColor.RESET + StringUtil.locToString(targetUser.getSavedLocation()) + " in " + targetUser.getSavedLocation().getWorld().getName());
-			sender.sendMessage(ChatColor.YELLOW + "Cached Floor: " + ChatColor.RESET + floorLoader.fromLocation(targetUser.getSavedLocation()).getDisplayName());
+			sender.sendMessage(ChatColor.YELLOW + "Cached Floor: " + ChatColor.RESET + FloorLoader.fromLocation(targetUser.getSavedLocation()).getDisplayName());
 			sender.sendMessage(ChatColor.YELLOW + "Cached Regions: " + ChatColor.RESET + regionLoader.getRegionsByLocationXZ(targetUser.getSavedLocation()).stream().map(r -> r.getFlags().getString("fullname")).collect(Collectors.joining(", ")));
 			sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetUser.getSavedHealth() + " / " + targetUser.getSavedMaxHealth());
 		}
@@ -105,7 +104,7 @@ public class InfoCommand implements CommandExecutor {
 			}
 			sender.sendMessage(ChatColor.YELLOW + "Active Permission Level: " + ChatColor.RESET + targetUser.getActivePermissionLevel().toString());
 			sender.sendMessage(ChatColor.YELLOW + "Location: " + ChatColor.RESET + StringUtil.locToString(targetPlayer.getLocation()) + " in " + targetPlayer.getWorld().getName());
-			sender.sendMessage(ChatColor.YELLOW + "Floor: " + ChatColor.RESET + floorLoader.fromLocation(targetPlayer.getLocation()).getDisplayName());
+			sender.sendMessage(ChatColor.YELLOW + "Floor: " + ChatColor.RESET + FloorLoader.fromLocation(targetPlayer.getLocation()).getDisplayName());
 			sender.sendMessage(ChatColor.YELLOW + "Regions: " + ChatColor.RESET + targetUser.getRegions().stream().map(r -> r.getFlags().getString("fullname")).collect(Collectors.joining(", ")));
 			sender.sendMessage(ChatColor.YELLOW + "Health: " + ChatColor.RESET + targetPlayer.getHealth() + " / " + targetPlayer.getMaxHealth());
 		}

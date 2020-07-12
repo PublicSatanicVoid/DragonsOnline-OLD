@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.GameObjectType;
-import mc.dragons.core.gameobject.floor.Floor;
 import mc.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.core.gameobject.loader.ItemLoader;
@@ -29,12 +28,12 @@ public class VerifyGameIntegrityCommand implements CommandExecutor {
 
 	private UserLoader userLoader;
 	private GameObjectRegistry registry;
-	private FloorLoader floorLoader;
+	//private FloorLoader floorLoader;
 	
 	public VerifyGameIntegrityCommand(Dragons instance) {
 		userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
 		registry = instance.getGameObjectRegistry();
-		floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
+		//floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
 	}
 	
 	@Override
@@ -114,7 +113,9 @@ public class VerifyGameIntegrityCommand implements CommandExecutor {
 					if(itemStack.getType() == null) continue;
 					if(itemStack.getAmount() == 0) continue; // Is this possible?
 					if(testPlayer.getGameMode() == GameMode.CREATIVE) continue;
-					sendMessageIfNotSilent(sender, silent, ChatColor.RED + "    - Player " + testPlayer.getName() + " has a vanilla item [" + itemStack.getType().toString() + "]");
+					User testUser = UserLoader.fromPlayer(testPlayer);
+					if(testUser.getActivePermissionLevel().ordinal() >= PermissionLevel.BUILDER.ordinal()) continue;
+					sendMessageIfNotSilent(sender, silent, ChatColor.RED + "    - Player " + testPlayer.getName() + " has an unauthorized vanilla item [" + itemStack.getType().toString() + "]");
 					errors++;
 					if(resolve) {
 						testPlayer.getInventory().remove(itemStack);
@@ -156,7 +157,7 @@ public class VerifyGameIntegrityCommand implements CommandExecutor {
 		sendMessageIfNotSilent(sender, silent, ChatColor.GRAY + "- Validating floors:");
 		for(World world : Bukkit.getWorlds()) {
 			if(world.getName().equals("world") || world.getName().equals("world_nether") || world.getName().contentEquals("world_the_end")) continue;
-			if(floorLoader.fromWorld(world) == null) {
+			if(FloorLoader.fromWorld(world) == null) {
 				sendMessageIfNotSilent(sender, silent, ChatColor.RED + "    - World " + world.getName() + " does not correspond to a valid floor");
 				errors++;
 			}
@@ -178,7 +179,7 @@ public class VerifyGameIntegrityCommand implements CommandExecutor {
 		
 		// If it's a console command, we'll log even if it's silent
 		if(silent && !(sender instanceof Player)) {
-			sender.sendMessage("Verified game environment. Found " + errors + " errors, fixed " + fixed);
+			Dragons.getInstance().getLogger().info("Verified game environment. Found " + errors + " errors, fixed " + fixed);
 		}
 		
 		return true;

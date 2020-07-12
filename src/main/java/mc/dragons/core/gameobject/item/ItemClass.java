@@ -13,6 +13,7 @@ public class ItemClass extends GameObject {
 	
 	public ItemClass(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
+		LOGGER.fine("Constrcting item class (" + storageManager + ", " + storageAccess + ")");
 	}
 	
 	public String getClassName() {
@@ -68,7 +69,15 @@ public class ItemClass extends GameObject {
 	}
 	
 	public void setUnbreakable(boolean unbreakable) {
-		setData("unbreakable", true);
+		setData("unbreakable", unbreakable);
+	}
+	
+	public boolean isUndroppable() {
+		return (boolean) getData("undroppable");
+	}
+	
+	public void setUndroppable(boolean undroppable) {
+		setData("undroppable", undroppable);
 	}
 	
 	public double getDamage() {

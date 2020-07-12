@@ -1,5 +1,7 @@
 package mc.dragons.core.tasks;
 
+import org.bukkit.scheduler.BukkitRunnable;
+
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.GameObjectType;
@@ -13,23 +15,18 @@ import mc.dragons.core.gameobject.loader.GameObjectRegistry;
  * @author Rick
  *
  */
-public class AutoSaveTask {
-	
-	private static AutoSaveTask INSTANCE;
-
+public class AutoSaveTask extends BukkitRunnable {
 	private Dragons plugin;
 	private GameObjectRegistry registry;
 	
-	private AutoSaveTask(Dragons instance) {
+	public AutoSaveTask(Dragons instance) {
 		this.plugin = instance;
 		this.registry = instance.getGameObjectRegistry();
 	}
 	
-	public synchronized static AutoSaveTask getInstance(Dragons pluginInstance) {
-		if(INSTANCE == null) {
-			INSTANCE = new AutoSaveTask(pluginInstance);
-		}
-		return INSTANCE;
+	@Override
+	public void run() {
+		run(false);
 	}
 	
 	public void run(boolean forceSave) {

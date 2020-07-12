@@ -105,12 +105,25 @@ public class QuestStep {
 	 * @return Whether the caller needs to update the quest stage.
 	 */
 	public boolean executeActions(User user) {
-		user.debug(" - Executing actions");
+		return executeActions(user, 0);
+	}
+	
+	public boolean executeActions(User user, int beginIndex) {
+		user.debug(" - Executing actions beginning at " + beginIndex);
 		boolean shouldUpdateStage = true;
-		for(QuestAction action : actions) {
+		for(int i = beginIndex; i < actions.size(); i++) {
+			QuestAction action = actions.get(i);
 			user.debug("   - Action type " + action.getActionType());
 			if(action.execute(user)) { // quest stage was modified
 				shouldUpdateStage = false;
+			}
+			user.updateQuestAction(quest, i + 1);
+			if(user.hasActiveDialogue()) {
+				user.debug("   - Paused action execution after index " + i + " due to dialogue in progress");
+				shouldUpdateStage = false;
+				final int resumeIndex = i + 1;
+				user.onDialogueComplete(u -> executeActions(u, resumeIndex));
+				break;
 			}
 		}
 		return shouldUpdateStage;

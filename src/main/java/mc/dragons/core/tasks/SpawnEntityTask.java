@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
@@ -26,31 +28,26 @@ import mc.dragons.core.gameobject.user.User;
  * @author Rick
  *
  */
-public class SpawnEntityTask {
+public class SpawnEntityTask extends BukkitRunnable {
 
-	private static SpawnEntityTask INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 
 	private Dragons plugin;
 	private GameObjectRegistry registry;
 	private NPCLoader npcLoader;
 	private RegionLoader regionLoader;
 	
-	private SpawnEntityTask(Dragons instance) {
+	public SpawnEntityTask(Dragons instance) {
 		this.plugin = instance;
 		this.registry = instance.getGameObjectRegistry();
 		this.npcLoader = (NPCLoader) GameObjectType.NPC.<NPC>getLoader();
 		this.regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 	}
 	
-	public synchronized static SpawnEntityTask getInstance(Dragons pluginInstance) {
-		if(INSTANCE == null) {
-			INSTANCE = new SpawnEntityTask(pluginInstance);
-		}
-		return INSTANCE;
-	}
-	
+	@Override
 	public void run() {
 		if(!plugin.getServerOptions().isCustomSpawningEnabled()) return;
+		long start = System.currentTimeMillis();
 		for(GameObject gameObject : registry.getRegisteredObjects(GameObjectType.USER)) {
 			User user = (User) gameObject;
 			if(user.getPlayer() == null) continue;
@@ -72,19 +69,21 @@ public class SpawnEntityTask {
 				if(spawn) {
 					double xOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
 					double zOffset = Math.signum(Math.random() - 0.5) * (5 + Math.random() * 10);
-					double yOffset = 2;
+					double yOffset = 0;
 					Location loc = user.getPlayer().getLocation().add(xOffset, yOffset, zOffset);
-					npcLoader.registerNew(world, loc, spawnRate.getKey());
 					for(int i = 0; i < 50; i++) {
 						if(loc.getBlock().getType().isSolid()) {
 							loc.add(0, 1, 0);
 						}
 						else break;
 					}
+					npcLoader.registerNew(world, loc, spawnRate.getKey());
 					
 				}
 			}
 		}
+		long end = System.currentTimeMillis();
+		LOGGER.fine("Ran entity spawn task in " + (end - start) + "ms");
 	}
 	
 }

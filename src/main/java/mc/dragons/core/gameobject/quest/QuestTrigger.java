@@ -1,6 +1,7 @@
 package mc.dragons.core.gameobject.quest;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +56,13 @@ public class QuestTrigger {
 		if(questTrigger.type == TriggerType.ENTER_REGION || questTrigger.type == TriggerType.EXIT_REGION) {
 			questTrigger.region = regionLoader.getRegionByName(trigger.getString("region"));
 		}
-		else if(questTrigger.type == TriggerType.CLICK_NPC || questTrigger.type == TriggerType.KILL_NPC) {
+		else if(questTrigger.type == TriggerType.CLICK_NPC) {
 			//questTrigger.npcClass = npcClassLoader.getNPCClassByClassName(trigger.getString("npcClass"));
 			questTrigger.npcClassShortName = trigger.getString("npcClass");
+		}
+		else if(questTrigger.type == TriggerType.KILL_NPC) {
+			questTrigger.npcClassShortName = trigger.getString("npcClass");
+			questTrigger.quantity = trigger.getInteger("quantity");
 		}
 		else if(questTrigger.type == TriggerType.BRANCH_CONDITIONAL) {
 			questTrigger.branchPoints = new LinkedHashMap<>();
@@ -83,7 +88,11 @@ public class QuestTrigger {
 	private Region region;
 	private Map<QuestTrigger, QuestAction> branchPoints;
 	
-	private QuestTrigger() { }
+	private Map<User, Integer> killQuantity;
+	
+	private QuestTrigger() { 
+		killQuantity = new HashMap<>();
+	}
 
 	public static QuestTrigger onEnterRegion(Region region) {
 		QuestTrigger trigger = new QuestTrigger();
@@ -106,10 +115,11 @@ public class QuestTrigger {
 		return trigger;
 	}
 	
-	public static QuestTrigger onKillNPC(NPCClass npcClass) {
+	public static QuestTrigger onKillNPC(NPCClass npcClass, int quantity) {
 		QuestTrigger trigger = new QuestTrigger();
 		trigger.type = TriggerType.KILL_NPC;
 		trigger.npcClass = npcClass;
+		trigger.quantity = quantity;
 		return trigger;
 	}
 	
@@ -179,9 +189,13 @@ public class QuestTrigger {
 			document.append("region", region.getName());
 			break;
 		case CLICK_NPC:
+			npcClassDeferredLoad();
+			document.append("npcClass", npcClass.getClassName());
+			break;
 		case KILL_NPC:
 			npcClassDeferredLoad();
 			document.append("npcClass", npcClass.getClassName());
+			document.append("quantity", quantity);
 			break;
 		case HAS_ITEM:
 			document.append("itemClass", itemClass.getClassName()).append("quantity", quantity);
@@ -261,8 +275,11 @@ public class QuestTrigger {
 				NPC npc = NPCLoader.fromBukkit(deathEvent.getEntity());
 				if(npc == null) return false;
 				if(npc.getNPCClass().equals(npcClass)) {
-					//user.p().sendMessage(" - Yes!");
-					return true;
+					killQuantity.put(user, killQuantity.getOrDefault(user, 0) + 1);
+					if(killQuantity.getOrDefault(user, 0) >= quantity) {
+						//user.p().sendMessage(" - Yes!");
+						return true;
+					}
 				}
 			}
 		}

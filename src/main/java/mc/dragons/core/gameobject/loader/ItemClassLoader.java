@@ -2,6 +2,7 @@ package mc.dragons.core.gameobject.loader;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.ChatColor;
@@ -17,6 +18,7 @@ import mc.dragons.core.storage.StorageManager;
 public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 
 	private static ItemClassLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	private boolean allLoaded = false;
 	
@@ -34,6 +36,7 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 	
 	@Override
 	public ItemClass loadObject(StorageAccess storageAccess) {
+		LOGGER.fine("Loading item class " + storageAccess.getIdentifier());
 		ItemClass itemClass = new ItemClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(itemClass);
 		return itemClass;
@@ -50,8 +53,10 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 		return null;
 	}
 	
-	public ItemClass registerNew(String className, String name, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, double damage, double armor, List<String> lore) {
+	public ItemClass registerNew(String className, String name, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, 
+			boolean unbreakable, boolean undroppable, double damage, double armor, List<String> lore) {
 		lazyLoadAll();
+		LOGGER.fine("Registering new item class (" + className + ")");
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
 				.append("name", name)
@@ -60,6 +65,7 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 				.append("lvMin", levelMin)
 				.append("cooldown", cooldown)
 				.append("unbreakable", unbreakable)
+				.append("undroppable", undroppable)
 				.append("damage", damage)
 				.append("armor", armor)
 				.append("speedBoost", speedBoost)
@@ -72,6 +78,7 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
+		LOGGER.fine("Loading all item classes...");
 		allLoaded = true;
 		masterRegistry.removeFromRegistry(GameObjectType.ITEM_CLASS);
 		storageManager.getAllStorageAccess(GameObjectType.ITEM_CLASS).stream().forEach((storageAccess) -> {

@@ -10,7 +10,6 @@ import mc.dragons.core.gameobject.item.Item;
 import mc.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.PermissionLevel;
-import mc.dragons.core.gameobject.user.SkillType;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
@@ -34,11 +33,11 @@ public class RenameCommand implements CommandExecutor {
 		Player player = (Player) sender;
 		User user = UserLoader.fromPlayer(player);
 		
-		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, false);
-		boolean valid = user.getSkillLevel(SkillType.BLACKSMITHING) >= 20 && user.getGold() >= 50.0 || bypassed;
+		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, true); //false);
+		boolean valid = false; //user.getSkillLevel(SkillType.BLACKSMITHING) >= 20 && user.getGold() >= 50.0 || bypassed;
 		
-		if(!valid) {
-			sender.sendMessage(ChatColor.RED + "Requires Blacksmithing Lv. 20+ and 50 Gold.");
+		if(!valid && !bypassed) {
+			//sender.sendMessage(ChatColor.RED + "Requires Blacksmithing Lv. 20+ and 50 Gold.");
 			return true;
 		}
 		

@@ -2,6 +2,7 @@ package mc.dragons.core.gameobject.loader;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.entity.EntityType;
@@ -18,6 +19,7 @@ import mc.dragons.core.storage.StorageManager;
 public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 	
 	private static NPCClassLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	private boolean allLoaded = false;
 	
@@ -36,6 +38,7 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 	@Override
 	public NPCClass loadObject(StorageAccess storageAccess) {
 		lazyLoadAll();
+		LOGGER.fine("Loading NPC class " + storageAccess.getIdentifier());
 		NPCClass npcClass = new NPCClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(npcClass);
 		return npcClass;
@@ -54,6 +57,7 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 	
 	public NPCClass registerNew(String className, String name, EntityType entityType, double maxHealth, int level, NPCType npcType) {
 		lazyLoadAll();
+		LOGGER.fine("Registering new NPC class (" + className + ")");
 		Document emptyConditionals = new Document();
 		for(NPCTrigger trigger : NPCTrigger.values()) {
 			emptyConditionals.append(trigger.toString(), new ArrayList<Document>());
@@ -64,8 +68,8 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 				.append("entityType", entityType.toString())
 				.append("maxHealth", maxHealth)
 				.append("level", level)
-				.append("ai", npcType == NPCType.HOSTILE || npcType == NPCType.NEUTRAL)
-				.append("immortal", false)
+				.append("ai", npcType.hasAIByDefault())
+				.append("immortal", npcType.isImmortalByDefault())
 				.append("npcType", npcType.toString())
 				.append("lootTable", new Document())
 				.append("conditionals", emptyConditionals);
@@ -77,6 +81,7 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
+		LOGGER.fine("Loading all NPC classes...");
 		allLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.NPC_CLASS);
 		storageManager.getAllStorageAccess(GameObjectType.NPC_CLASS).stream().forEach((storageAccess) -> {

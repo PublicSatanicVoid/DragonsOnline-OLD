@@ -20,11 +20,11 @@ import mc.dragons.core.util.PermissionUtil;
 public class GoToFloorCommand implements CommandExecutor {
 
 	private GameObjectRegistry registry;
-	private FloorLoader floorLoader;
+	//private FloorLoader floorLoader;
 	
 	public GoToFloorCommand(Dragons instance) {
 		registry = instance.getGameObjectRegistry();
-		floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
+		//floorLoader = (FloorLoader) GameObjectType.FLOOR.<Floor>getLoader();
 	}
 	
 	@Override
@@ -56,7 +56,7 @@ public class GoToFloorCommand implements CommandExecutor {
 			return true;
 		}
 		
-		Floor floor = floorLoader.fromFloorName(args[0]);
+		Floor floor = FloorLoader.fromFloorName(args[0]);
 		if(floor == null) {
 			sender.sendMessage(ChatColor.RED + "That floor does not exist!");
 			return true;

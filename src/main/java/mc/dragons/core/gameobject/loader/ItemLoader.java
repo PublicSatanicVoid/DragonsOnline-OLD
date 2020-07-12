@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.bukkit.ChatColor;
@@ -21,6 +22,7 @@ import mc.dragons.core.util.HiddenStringUtil;
 public class ItemLoader extends GameObjectLoader<Item> {
 
 	private static ItemLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	//private static Map<ItemStack, Item> itemStackToItem;
 	private static Map<String, Item> uuidToItem;
@@ -41,6 +43,8 @@ public class ItemLoader extends GameObjectLoader<Item> {
 	
 	@Override
 	public Item loadObject(StorageAccess storageAccess) {
+		if(storageAccess == null) return null;
+		LOGGER.fine("Loading item by storage access " + storageAccess.getIdentifier());
 		Material type = Material.valueOf((String) storageAccess.get("materialType"));
 		ItemStack itemStack = new ItemStack(type);
 		Item item = new Item(itemStack, storageManager, storageAccess);
@@ -51,15 +55,22 @@ public class ItemLoader extends GameObjectLoader<Item> {
 	}
 	
 	public Item loadObject(UUID uuid) {
+		LOGGER.fine("Loading item by UUID " + uuid);
 		return loadObject(storageManager.getStorageAccess(GameObjectType.ITEM, uuid));
 	}
 	
 	public Item registerNew(ItemClass itemClass) {
 		return registerNew(itemClass.getClassName(), itemClass.getName(), false, itemClass.getNameColor(), itemClass.getMaterial(), itemClass.getLevelMin(), itemClass.getCooldown(), itemClass.getSpeedBoost(),
-				itemClass.isUnbreakable(), itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore());
+				itemClass.isUnbreakable(), itemClass.isUndroppable(), itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore());
 	}
 	
-	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, double damage, double armor, List<String> lore) {
+	public Item registerNew(Item item) {
+		return registerNew(item.getClassName(), item.getName(), item.isCustom(), item.getNameColor(), item.getMaterial(), item.getLevelMin(), item.getCooldown(), 
+				item.getSpeedBoost(), item.isUnbreakable(), item.isUndroppable(), item.getDamage(), item.getArmor(), item.getLore());
+	}
+	
+	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, boolean undroppable, double damage, double armor, List<String> lore) {
+		LOGGER.fine("Registering new item of class " + className);
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
 				.append("name", name)
@@ -70,9 +81,11 @@ public class ItemLoader extends GameObjectLoader<Item> {
 				.append("cooldown", cooldown)
 				.append("speedBoost", speedBoost)
 				.append("unbreakable", unbreakable)
+				.append("undroppable", undroppable)
 				.append("damage", damage)
 				.append("armor", armor)
-				.append("lore", lore);
+				.append("lore", lore)
+				.append("quantity", 1);
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.ITEM, data);
 		ItemStack itemStack = new ItemStack(material);
 		Item item = new Item(itemStack, storageManager, storageAccess);
@@ -86,9 +99,8 @@ public class ItemLoader extends GameObjectLoader<Item> {
 		if(itemStack == null) return null;
 		if(itemStack.getItemMeta() == null) return null;
 		if(itemStack.getItemMeta().getLore() == null) return null;
-		if(itemStack.getItemMeta().getLore().size() < 2) return null;
+		if(itemStack.getItemMeta().getLore().size() < 1) return null;
 		//return itemStackToItem.get(itemStack);
-		return uuidToItem.get(HiddenStringUtil.extractHiddenString(itemStack.getItemMeta().getLore().get(1)));
+		return uuidToItem.get(HiddenStringUtil.extractHiddenString(itemStack.getItemMeta().getLore().get(0)));
 	}
-
 }

@@ -10,11 +10,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.inventory.ItemStack;
@@ -40,6 +43,10 @@ import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.StorageUtil;
 import mc.dragons.core.storage.impl.SystemProfile;
 import mc.dragons.core.storage.impl.SystemProfileLoader;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 
 /**
  * Represents a player in the RPG.
@@ -94,6 +101,7 @@ public class User extends GameObject {
 	private static RegionLoader regionLoader;
 	private static FloorLoader floorLoader;
 	private static QuestLoader questLoader;
+	private static ItemLoader itemLoader;
 	private static UserLoader userLoader;
 	
 	public static final double MIN_DISTANCE_TO_UPDATE_STATE = 2.0;
@@ -104,7 +112,13 @@ public class User extends GameObject {
 	private PermissionLevel activePermissionLevel;
 	private SystemProfile profile;
 	private Map<Quest, QuestStep> questProgress;
-	private boolean isDebugging;
+	private Map<Quest, Integer> questActionIndices;
+	private List<CommandSender> currentlyDebugging;
+	private List<String> currentDialogueBatch;
+	private String currentDialogueSpeaker;
+	private int currentDialogueIndex;
+	private List<Consumer<User>> currentDialogueCompletionHandlers;
+	
 	
 	public static int calculateLevel(int xp) {
 		return (int) Math.floor(xp / 1_000_000 + Math.sqrt(xp / 100)) + 1;
@@ -120,7 +134,9 @@ public class User extends GameObject {
 	
 	public User(Player player, StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
+		LOGGER.fine("Constructing user (" + getName() + ", " + storageManager + ", " + storageAccess + ")");
 		
+		currentlyDebugging = new ArrayList<>();
 		if(regionLoader == null) {
 			regionLoader = (RegionLoader) GameObjectType.REGION.<Region>getLoader();
 		}
@@ -129,6 +145,9 @@ public class User extends GameObject {
 		}
 		if(questLoader == null) {
 			questLoader = (QuestLoader) GameObjectType.QUEST.<Quest>getLoader();
+		}
+		if(itemLoader == null) {
+			itemLoader = (ItemLoader) GameObjectType.ITEM.<Item>getLoader();
 		}
 		if(userLoader == null) {
 			userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
@@ -147,19 +166,54 @@ public class User extends GameObject {
 			}
 		}
 		
-		@SuppressWarnings("unchecked")
-		List<UUID> inventory = (List<UUID>) getData("inventory");
-		for(UUID uuid : inventory) {
-			Item item = ((ItemLoader) GameObjectType.ITEM.<Item>getLoader()).loadObject(uuid);
-			giveItem(item, false, player == null, true);
+		Document inventory = (Document) getData("inventory");
+		List<String> brokenItems = new ArrayList<>();
+		for(Entry<String, Object> entry : inventory.entrySet()) {
+			String[] labels = entry.getKey().split(Pattern.quote("-"));
+			String part = labels[0];
+			int slot = Integer.valueOf(labels[1]);
+			Item item = itemLoader.loadObject((UUID) entry.getValue());
+			if(item == null) {
+				brokenItems.add((String) entry.getValue());
+				continue;
+			}
+			ItemStack itemStack = item.getItemStack();
+			if(part.equals("I")) {
+				player.getInventory().setItem(slot, itemStack);
+			}
+			else if(part.equals("Helmet")) {
+				player.getInventory().setHelmet(itemStack);
+			}
+			else if(part.equals("Chestplate")) {
+				player.getInventory().setChestplate(itemStack);
+			}
+			else if(part.equals("Leggings")) {
+				player.getInventory().setLeggings(itemStack);
+			}
+			else if(part.equals("Boots")) {
+				player.getInventory().setBoots(itemStack);
+			}
+		}
+		if(brokenItems.size() > 0) {
+			player.sendMessage(ChatColor.RED + "" + brokenItems.size() + " items in your saved inventory could not be loaded:");
+			brokenItems.forEach(uuid -> player.sendMessage(ChatColor.RED + " - " + uuid));
 		}
 		
+//		@SuppressWarnings("unchecked")
+//		List<UUID> inventory = (List<UUID>) getData("inventory");
+//		for(UUID uuid : inventory) {
+//			Item item = ((ItemLoader) GameObjectType.ITEM.<Item>getLoader()).loadObject(uuid);
+//			giveItem(item, false, player == null, true);
+//		}
+		
 		questProgress = new HashMap<>();
+		questActionIndices = new HashMap<>();
 		Document questProgressDoc = (Document) getData("quests");
 		for(Entry<String, Object> entry : questProgressDoc.entrySet()) {
 			Quest quest = questLoader.getQuestByName(entry.getKey());
 			if(quest == null) continue; // Quest was deleted?
 			questProgress.put(quest, quest.getSteps().get((Integer) entry.getValue()));
+			questActionIndices.put(quest, 0);
 		}
 		
 		cachedRegions = new HashSet<>();
@@ -167,30 +221,89 @@ public class User extends GameObject {
 		return this;
 	}
 	
-	public void setDebugging(boolean debugging) {
-		isDebugging = debugging;
+	public void debugTo(CommandSender debugger) {
+		currentlyDebugging.add(debugger);
 	}
 	
-	public boolean isDebugging() {
-		return isDebugging;
+	public void removeDebug(CommandSender debugger) {
+		currentlyDebugging.remove(currentlyDebugging.indexOf(debugger));
 	}
 	
 	public void debug(String message) {
-		if(isDebugging()) {
-			player.sendMessage("[DEBUG] " + message);
+		for(CommandSender debugger : currentlyDebugging) {
+			debugger.sendMessage("[DEBUG] [" + getName() + "] " + message);
 		}
+	}
+	
+	public void setDialogueBatch(Quest quest, String speaker, List<String> dialogue) {
+		currentDialogueSpeaker = speaker;
+		currentDialogueBatch = dialogue;
+		currentDialogueIndex = 0;
+		currentDialogueCompletionHandlers = new ArrayList<>();
+	}
+	
+	public boolean hasActiveDialogue() {
+		return currentDialogueBatch != null;
+	}
+	
+	public void onDialogueComplete(Consumer<User> handler) {
+		currentDialogueCompletionHandlers.add(handler);
+	}
+	
+	public void resetDialogueAndHandleCompletion() {
+		if(currentDialogueBatch == null) return;
+		if(currentDialogueIndex >= currentDialogueBatch.size()) {
+			debug("Handling dialogue completion...");
+			currentDialogueSpeaker = null;
+			currentDialogueBatch = null;
+			currentDialogueIndex = 0;
+			for(Consumer<User> handler : currentDialogueCompletionHandlers) {
+				handler.accept(this);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @return Whether there is more dialogue
+	 */
+	public boolean nextDialogue() {
+		if(!hasActiveDialogue()) {
+			return false;
+		}
+		debug("nextDialogue");
+		debug(" - idx=" + currentDialogueIndex);
+		TextComponent message = new TextComponent(TextComponent.fromLegacyText(
+				ChatColor.GRAY + "[" + (currentDialogueIndex + 1) + "/" + currentDialogueBatch.size() + "] " 
+						+ ChatColor.DARK_GREEN + currentDialogueSpeaker + ": "
+						+ ChatColor.GREEN + currentDialogueBatch.get(currentDialogueIndex++)));
+		message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/fastforwarddialogue"));
+		message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(ChatColor.YELLOW + "Click to fast-forward through the dialogue").create()));
+		player.spigot().sendMessage(message);
+		if(currentDialogueIndex >= currentDialogueBatch.size()) {
+			resetDialogueAndHandleCompletion();
+			return false;
+		}
+		return true;
 	}
 	
 	public void updateQuests(Event event) {
 		debug("Updating quests...");
+		if(currentDialogueBatch != null) {
+			if(currentDialogueIndex < currentDialogueBatch.size()) {
+				debug("- Cancelled quest update because of active dialogue");
+				return;
+			}
+		}
 		for(Entry<Quest, QuestStep> questStep : questProgress.entrySet()) {
 			debug("- Step " + questStep.getValue().getStepName() + " of " + questStep.getKey().getName());
 			if(questStep.getValue().getStepName().equalsIgnoreCase("Complete")) continue; // Nothing to check if they're already done
 			debug("  - Trigger: " + questStep.getValue().getTrigger().getTriggerType());
+
 			if(questStep.getValue().getTrigger().test(this, event)) {
 				Quest quest = questStep.getKey();
 				debug("   - Triggered");
-				if(questStep.getValue().executeActions(this)) {
+				if(questStep.getValue().executeActions(this, getQuestActionIndex(quest))) {
 					debug("      - Normal progression to next step");
 					int nextIndex = quest.getSteps().indexOf(questStep.getValue()) + 1;
 					if(nextIndex != quest.getSteps().size()) {
@@ -207,11 +320,12 @@ public class User extends GameObject {
 	}
 	
 	public void updateState(boolean applyQuestTriggers, boolean notify) {
+		LOGGER.finest("Update user state: " + getName() + " (applyQuestTriggers=" + applyQuestTriggers + ", notify=" + notify + ")");
 		Set<Region> regions = regionLoader.getRegionsByLocationXZ(player.getLocation());
 		
 		if(cachedLocation != null) {
 			if(cachedLocation.getWorld() != player.getLocation().getWorld()) {
-				Floor floor = floorLoader.fromWorldName(player.getLocation().getWorld().getName());
+				Floor floor = FloorLoader.fromWorldName(player.getLocation().getWorld().getName());
 				cachedLocation = player.getLocation();
 				cachedRegions = regions;
 				if(notify) {
@@ -289,10 +403,11 @@ public class User extends GameObject {
 		}
 		debug("==UPDATING QUEST PROGRESS: " + quest.getName() + " step " + questStep.getStepName());
 		questProgress.put(quest, questStep);
+		questActionIndices.put(quest, 0);
 		updatedQuestProgress.append(quest.getName(), quest.getSteps().indexOf(questStep));
 		storageAccess.update(new Document("quests", updatedQuestProgress));
 		if(notify) {
-			if(questStep.getStepName().equalsIgnoreCase("Complete")) {
+			if(questStep.getStepName().equals("Complete")) {
 				player.sendMessage(ChatColor.GRAY + "Completed quest " + quest.getQuestName());
 			}
 			else {
@@ -301,44 +416,72 @@ public class User extends GameObject {
 		}
 	}
 	
+	public void updateQuestAction(Quest quest, int actionIndex) {
+		questActionIndices.put(quest, actionIndex);
+	}
+	
+	public int getQuestActionIndex(Quest quest) {
+		return questActionIndices.getOrDefault(quest, 0);
+	}
+	
 	public void updateQuestProgress(Quest quest, QuestStep questStep) {
 		updateQuestProgress(quest, questStep, true);
 	}
 	
 	public void giveItem(Item item, boolean updateDB, boolean dbOnly, boolean silent) {
+		int originalQuantity = item.getQuantity();
 		if(!dbOnly) {
-			player.getInventory().addItem(item.getItemStack());
+			boolean merged = false;
+			for(int i = 0; i < player.getInventory().getContents().length; i++) {
+				ItemStack itemStack = player.getInventory().getContents()[i];
+				if(itemStack == null) continue;
+				Item testItem = ItemLoader.fromBukkit(itemStack);
+				if(testItem == null) continue;
+				if(item.getClassName().equals(testItem.getClassName()) && !item.isCustom() && !testItem.isCustom()) {
+					debug("Merging with existing items... (has " + testItem.getQuantity() + ", adding " + item.getQuantity() + ")");
+					int quantity = testItem.getQuantity() + item.getQuantity();
+					if(quantity > 64) {
+						item.setQuantity(quantity -  64);
+					}
+					testItem.setQuantity(Math.min(64, quantity));
+					player.getInventory().setItem(i, testItem.getItemStack());
+					merged = quantity <= 64;
+					break;
+				}
+			}
+			if(!merged) {
+				player.getInventory().addItem(item.getItemStack());
+			}
 		}
 		if(updateDB) {
-			@SuppressWarnings("unchecked")
-			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
-			inventory.add(item.getUUID());
-			storageAccess.update(new Document("inventory", inventory));
+			storageAccess.update(new Document("inventory", getInventoryAsDocument()));
 		}
 		if(!silent) {
-			player.sendMessage(ChatColor.GRAY + "Received " + item.getDecoratedName());
+			player.sendMessage(ChatColor.GRAY + "Received " + item.getDecoratedName() + (item.getQuantity() > 1 ? ChatColor.GRAY + " (x" + originalQuantity + ")" : ""));
 		}
+
 	}
 	
 	public void giveItem(Item item) {
 		giveItem(item, true, false, false);
 	}
 	
-	public void takeItem(Item item, boolean updateDB, boolean notify) {
-		player.getInventory().remove(item.getItemStack());
+	public void takeItem(Item item, int amount, boolean updateDB, boolean notify) {
+		debug("Removing " + amount + " of " + item.getName());
+		if(amount < item.getQuantity()) {
+			debug("-New quantity: " + item.getQuantity());
+			item.setQuantity(item.getQuantity() - amount);
+		}
 		if(updateDB) {
-			@SuppressWarnings("unchecked")
-			ArrayList<UUID> inventory = (ArrayList<UUID>) getData("inventory");
-			inventory.remove(item.getUUID());
-			storageAccess.update(new Document("inventory", inventory));
+			storageAccess.update(new Document("inventory", getInventoryAsDocument()));
 		}
 		if(notify) {
-			player.sendMessage(ChatColor.GRAY + "Lost " + item.getDecoratedName());
+			player.sendMessage(ChatColor.GRAY + "Lost " + item.getDecoratedName() + (amount > 1 ? ChatColor.GRAY + " (x" + amount + ")" : ""));
 		}
 	}
 	
 	public void takeItem(Item item) {
-		takeItem(item, true, true);
+		takeItem(item, 1, true, true);
 	}
 	
 	public void handleJoin() {
@@ -518,7 +661,7 @@ public class User extends GameObject {
 	}
 	
 	public void sendToFloor(String floorName, boolean overrideLevelRequirement) {
-		Floor floor = floorLoader.fromFloorName(floorName);
+		Floor floor = FloorLoader.fromFloorName(floorName);
 		if(!overrideLevelRequirement && getLevel() < floor.getLevelMin()) return;
 		player.teleport(floor.getWorld().getSpawnLocation());
 	}
@@ -535,6 +678,7 @@ public class User extends GameObject {
 		int level = calculateLevel(xp);
 		if(level > getLevel()) {
 			sendTitle(ChatColor.DARK_AQUA, "Level Up!", ChatColor.AQUA, getLevel() + "  >>>  " + level, 10, 10, 10);
+			Bukkit.broadcastMessage(ChatColor.AQUA + getName() + " is now level " + level + "!");
 			player.setMaxHealth(calculateMaxHealth(level));
 		}
 		update(new Document("xp", xp).append("level", level));
@@ -628,6 +772,7 @@ public class User extends GameObject {
 	
 	public void setSystemProfile(SystemProfile profile) {
 		this.profile = profile;
+		LOGGER.fine("User " + getName() + " system profile set to " + (profile == null ? "null" : profile.getProfileName()));
 	}
 	
 	public SystemProfile getSystemProfile() {
@@ -642,9 +787,13 @@ public class User extends GameObject {
 		if(permissionLevel.ordinal() > getSystemProfile().getMaxPermissionLevel().ordinal()) {
 			return false;
 		}
+		LOGGER.fine("User " + getName() + " active permission level set to " + permissionLevel);
 		activePermissionLevel = permissionLevel;
 		player.addAttachment(Dragons.getInstance(), "worldedit.*", permissionLevel.ordinal() >= PermissionLevel.BUILDER.ordinal());
+		player.addAttachment(Dragons.getInstance(), "minecraft.command.give", permissionLevel.ordinal() >= PermissionLevel.BUILDER.ordinal());
+		player.addAttachment(Dragons.getInstance(), "minecraft.command.summon", permissionLevel.ordinal() >= PermissionLevel.BUILDER.ordinal());
 		player.addAttachment(Dragons.getInstance(), "minecraft.command.teleport", permissionLevel.ordinal() >= PermissionLevel.MOD.ordinal());
+		player.addAttachment(Dragons.getInstance(), "minecraft.command.setworldspawn", permissionLevel.ordinal() >= PermissionLevel.GM.ordinal());
 		sendActionBar(ChatColor.GRAY + "Active permission level changed to " + permissionLevel.toString());
 		updateVanishStatesOnSelf();
 		return true;
@@ -788,13 +937,56 @@ public class User extends GameObject {
 		return new PunishmentData(type, reason, expiry, false);
 	}
 	
+	public Document getInventoryAsDocument() {
+		Document inventory = new Document();
+		for(int i = 0; i < player.getInventory().getContents().length; i++) {
+			ItemStack is = player.getInventory().getContents()[i];
+			if(is == null) continue;
+			Item item = ItemLoader.fromBukkit(is);
+			if(item == null) continue;
+			inventory.append("I-" + i, item.getUUID());
+		}
+		ItemStack helmetStack = player.getInventory().getHelmet();
+		Item helmet = ItemLoader.fromBukkit(helmetStack);
+		if(helmet != null) {
+			inventory.append("Helmet-0", helmet.getUUID());
+		}
+		ItemStack chestplateStack = player.getInventory().getChestplate();
+		Item chestplate = ItemLoader.fromBukkit(chestplateStack);
+		if(chestplate != null) {
+			inventory.append("Chestplate-0", chestplate.getUUID());
+		}
+
+		ItemStack leggingsStack = player.getInventory().getLeggings();
+		Item leggings = ItemLoader.fromBukkit(leggingsStack);
+		if(leggings != null) {
+			inventory.append("Leggings-0", leggings.getUUID());
+		}
+
+		ItemStack bootsStack = player.getInventory().getBoots();
+		Item boots = ItemLoader.fromBukkit(bootsStack);
+		if(boots != null) {
+			inventory.append("Boots-0", boots.getUUID());
+		}
+		
+		return inventory;
+	}
+	
 	@Override
 	public void autoSave() {
+		super.autoSave();
 		sendActionBar(ChatColor.GREEN + "Autosaving...");
 		Document autoSaveData = new Document("lastLocation", StorageUtil.locToDoc(player.getLocation()))
 				.append("lastSeen", System.currentTimeMillis())
 				.append("maxHealth", player.getMaxHealth())
-				.append("health", player.getHealth());
+				.append("health", player.getHealth())
+				.append("inventory", getInventoryAsDocument());
+		for(ItemStack itemStack : player.getInventory().getContents()) {
+			if(itemStack == null) continue;
+			Item item = ItemLoader.fromBukkit(itemStack);
+			if(item == null) continue;
+			item.autoSave();
+		}
 		update(autoSaveData);
 	}
 

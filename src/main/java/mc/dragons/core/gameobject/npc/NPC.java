@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
 import org.bukkit.metadata.FixedMetadataValue;
 
 import mc.dragons.core.Dragons;
@@ -19,6 +20,7 @@ import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.util.EntityHider;
 import mc.dragons.core.util.EntityHider.Policy;
 import mc.dragons.core.util.ProgressBarUtil;
+import mc.dragons.core.util.StringUtil;
 
 /**
  * Represents an NPC in the RPG.
@@ -37,17 +39,23 @@ import mc.dragons.core.util.ProgressBarUtil;
 public class NPC extends GameObject {
 	
 	public enum NPCType {
-		HOSTILE(ChatColor.RED, ""),
-		NEUTRAL(ChatColor.YELLOW, ""),
-		QUEST(ChatColor.DARK_GREEN, ChatColor.DARK_GREEN + "[NPC] "),
-		SHOP(ChatColor.DARK_AQUA, ChatColor.DARK_AQUA + "[NPC] ");
+		HOSTILE(ChatColor.RED, "", false, false, true),
+		NEUTRAL(ChatColor.YELLOW, "", false, false, true),
+		QUEST(ChatColor.DARK_GREEN, ChatColor.DARK_GREEN + "[NPC] ", true, true, false),
+		SHOP(ChatColor.DARK_AQUA, ChatColor.DARK_AQUA + "[NPC] ", true, true, false);
 		
 		private ChatColor nameColor;
 		private String prefix;
+		private boolean persistent;
+		private boolean immortalByDefault;
+		private boolean aiByDefault;
 		
-		NPCType(ChatColor nameColor, String prefix) {
+		NPCType(ChatColor nameColor, String prefix, boolean persistent, boolean immortalByDefault, boolean aiByDefault) {
 			this.nameColor = nameColor;
 			this.prefix = prefix;
+			this.persistent = persistent;
+			this.immortalByDefault = immortalByDefault;
+			this.aiByDefault = aiByDefault;
 		}
 		
 		public ChatColor getNameColor() {
@@ -56,6 +64,18 @@ public class NPC extends GameObject {
 		
 		public String getPrefix() {
 			return prefix;
+		}
+		
+		public boolean isPersistent() {
+			return persistent;
+		}
+		
+		public boolean isImmortalByDefault() {
+			return immortalByDefault;
+		}
+		
+		public boolean hasAIByDefault() {
+			return aiByDefault;
 		}
 	};
 
@@ -67,12 +87,20 @@ public class NPC extends GameObject {
 	
 	public NPC(Entity entity, StorageManager storageManager, StorageAccess storageAccess) {
 		super(GameObjectType.NPC, (UUID) storageAccess.get("_id"), storageManager);
-		
+		LOGGER.fine("Constructing NPC (" + StringUtil.entityToString(entity) + ", " + storageManager + ", " + storageAccess + ")");
 		if(npcClassLoader == null) {
 			npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
 		}
 		if(entityHider == null) {
 			entityHider = new EntityHider(Dragons.getInstance(), Policy.BLACKLIST);
+		}
+
+		if(entity instanceof Zombie) {
+			((Zombie) entity).setBaby(false); // TODO: make configurable in NPC Class
+		}
+
+		if(entity.isInsideVehicle()) {
+			entity.getVehicle().eject();
 		}
 		
 		this.entity = entity;
@@ -182,6 +210,7 @@ public class NPC extends GameObject {
 	}
 	
 	public void phase(Player playerFor) {
+		LOGGER.finer("Phasing NPC " + getIdentifier() + " for " + playerFor.getName());
 		for(Player p : Bukkit.getOnlinePlayers()) {
 			if(!p.equals(playerFor)) {
 				entityHider.hideEntity(p, entity);
@@ -191,6 +220,7 @@ public class NPC extends GameObject {
 	}
 	
 	public void setEntity(Entity entity) {
+		LOGGER.finer("Replacing entity backing NPC " + getIdentifier() + ": " + StringUtil.entityToString(this.entity) + " -> " + StringUtil.entityToString(entity));
 		this.entity = entity;
 	}
 	

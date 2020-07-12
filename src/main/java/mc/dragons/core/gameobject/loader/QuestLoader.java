@@ -2,6 +2,7 @@ package mc.dragons.core.gameobject.loader;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 
@@ -15,6 +16,7 @@ import mc.dragons.core.storage.StorageManager;
 public class QuestLoader extends GameObjectLoader<Quest> {
 
 	private static QuestLoader INSTANCE;
+	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	private boolean allLoaded = false;
 	
@@ -33,6 +35,7 @@ public class QuestLoader extends GameObjectLoader<Quest> {
 	@Override
 	public Quest loadObject(StorageAccess storageAccess) {
 		lazyLoadAll();
+		LOGGER.fine("Loading quest " + storageAccess.getIdentifier());
 		Quest quest = new Quest(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(quest);
 		return quest;
@@ -51,6 +54,7 @@ public class QuestLoader extends GameObjectLoader<Quest> {
 	
 	public Quest registerNew(String name, String questName, int lvMin) {
 		lazyLoadAll();
+		LOGGER.fine("Registering new quest " + name);
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("name", name)
 				.append("questName", questName)
@@ -64,6 +68,7 @@ public class QuestLoader extends GameObjectLoader<Quest> {
 	
 	public void loadAll(boolean force) {
 		if(allLoaded && !force) return;
+		LOGGER.fine("Loading all quests...");
 		allLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.QUEST);
 		storageManager.getAllStorageAccess(GameObjectType.QUEST).stream().forEach((storageAccess) -> {
