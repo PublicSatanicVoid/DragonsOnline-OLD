@@ -6,13 +6,8 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.bson.Document;
-import org.bson.UuidRepresentation;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
@@ -36,27 +31,12 @@ public class MongoStorageManager implements StorageManager {
 
 	private MongoDatabase database;
 	private MongoCollection<Document> gameObjectCollection;
-	private Dragons plugin;
 	
 	private Logger LOGGER;
 	
 	public MongoStorageManager(Dragons instance, String host, int port, String username, String password, String authDB) {
-		ConnectionString connectionString = new ConnectionString("mongodb://" + username + ":" + password + "@" + host + ":" + port + "/?authSource=" + authDB);
-		MongoClientSettings settings = MongoClientSettings.builder()
-				.applyConnectionString(connectionString)
-				.uuidRepresentation(UuidRepresentation.STANDARD)
-				.build();
-		
-		MongoClient client = MongoClients.create(settings);
-		plugin = instance;
-		LOGGER = plugin.getLogger();
-		if(client == null) {
-			LOGGER.severe("Could not connect to MongoDB");
-		}
-		else {
-			LOGGER.info("Successfully connected to MongoDB on port " + port);
-		}
-		database = client.getDatabase(MongoConfig.DATABASE);
+		LOGGER = Dragons.getInstance().getLogger();
+		database = MongoConfig.getDatabase();
 		gameObjectCollection = database.getCollection(MongoConfig.GAMEOBJECTS_COLLECTION);
 	}
 

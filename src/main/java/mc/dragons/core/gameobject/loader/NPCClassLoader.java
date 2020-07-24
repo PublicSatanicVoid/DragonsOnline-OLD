@@ -72,7 +72,8 @@ public class NPCClassLoader extends GameObjectLoader<NPCClass> {
 				.append("immortal", npcType.isImmortalByDefault())
 				.append("npcType", npcType.toString())
 				.append("lootTable", new Document())
-				.append("conditionals", emptyConditionals);
+				.append("conditionals", emptyConditionals)
+				.append("addons", new ArrayList<>());
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC_CLASS, data);
 		NPCClass npcClass = new NPCClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(npcClass);

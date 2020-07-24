@@ -6,6 +6,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 
 import mc.dragons.core.gameobject.GameObject;
+import mc.dragons.core.gameobject.loader.FloorLoader;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 
@@ -34,13 +35,16 @@ public class Floor extends GameObject {
 			creator.type(WorldType.FLAT);
 		}
 		World world = Bukkit.createWorld(creator);
+		world.setGameRuleValue("announceAdvancements", "false");
+		world.setGameRuleValue("commandBlockFeedback", "false");
+		world.setGameRuleValue("commandBlockOutput", "false");
+		world.setGameRuleValue("doMobLoot", "false");
 		world.setGameRuleValue("doMobSpawning", "false");
 		world.setGameRuleValue("doEntityDrops", "false");
-		world.setGameRuleValue("doMobLoot", "false");
 		world.setGameRuleValue("doFireTick", "false");
+		world.setGameRuleValue("keepInventory", "true");
 		world.setGameRuleValue("mobGriefing", "false");
 		world.setGameRuleValue("showDeathMessages", "false");
-		world.setGameRuleValue("keepInventory", "true");
 	}
 	
 	public String getWorldName() {
@@ -56,6 +60,7 @@ public class Floor extends GameObject {
 	}
 	
 	public void setFloorName(String floorName) {
+		FloorLoader.updateFloorName(getFloorName(), floorName);
 		setData("floorName", floorName);
 	}
 	

@@ -143,6 +143,7 @@ public class VerifyGameIntegrityCommand implements CommandExecutor {
 					}
 				}
 				else if(NPCLoader.fromBukkit(entity) == null) {
+					if(entity.isInsideVehicle()) continue; // Riding things is OK, usually
 					sendMessageIfNotSilent(sender, silent, ChatColor.RED + "    - Entity #" + entity.getEntityId() + " [type " + entity.getType().toString() + "] in world " + world.getName() + " does not correspond to a valid GameObject");
 					errors++;
 					if(resolve) {

@@ -37,7 +37,7 @@ public class LootTable {
 	public Set<Item> getDrops(Location loc) {
 		if(lootTable == null) return new HashSet<>();
 		
-		Set<Region> regions = regionLoader.getRegionsByLocationXZ(loc);
+		Set<Region> regions = regionLoader.getRegionsByLocation(loc);
 		Set<Item> drops = new HashSet<>();
 		
 		for(Region region : regions) {

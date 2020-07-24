@@ -61,15 +61,16 @@ public class ItemLoader extends GameObjectLoader<Item> {
 	
 	public Item registerNew(ItemClass itemClass) {
 		return registerNew(itemClass.getClassName(), itemClass.getName(), false, itemClass.getNameColor(), itemClass.getMaterial(), itemClass.getLevelMin(), itemClass.getCooldown(), itemClass.getSpeedBoost(),
-				itemClass.isUnbreakable(), itemClass.isUndroppable(), itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore());
+				itemClass.isUnbreakable(), itemClass.isUndroppable(), itemClass.getDamage(), itemClass.getArmor(), itemClass.getLore(), itemClass.getMaxStackSize());
 	}
 	
 	public Item registerNew(Item item) {
 		return registerNew(item.getClassName(), item.getName(), item.isCustom(), item.getNameColor(), item.getMaterial(), item.getLevelMin(), item.getCooldown(), 
-				item.getSpeedBoost(), item.isUnbreakable(), item.isUndroppable(), item.getDamage(), item.getArmor(), item.getLore());
+				item.getSpeedBoost(), item.isUnbreakable(), item.isUndroppable(), item.getDamage(), item.getArmor(), item.getLore(), item.getMaxStackSize());
 	}
 	
-	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, boolean undroppable, double damage, double armor, List<String> lore) {
+	public Item registerNew(String className, String name, boolean custom, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, boolean unbreakable, 
+			boolean undroppable, double damage, double armor, List<String> lore, int maxStackSize) {
 		LOGGER.fine("Registering new item of class " + className);
 		Document data = new Document("_id", UUID.randomUUID())
 				.append("className", className)
@@ -85,7 +86,8 @@ public class ItemLoader extends GameObjectLoader<Item> {
 				.append("damage", damage)
 				.append("armor", armor)
 				.append("lore", lore)
-				.append("quantity", 1);
+				.append("quantity", 1)
+				.append("maxStackSize", maxStackSize);
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.ITEM, data);
 		ItemStack itemStack = new ItemStack(material);
 		Item item = new Item(itemStack, storageManager, storageAccess);

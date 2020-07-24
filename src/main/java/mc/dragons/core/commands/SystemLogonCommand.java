@@ -10,8 +10,10 @@ import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.storage.impl.SystemProfile;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.storage.impl.SystemProfileLoader;
 import mc.dragons.core.util.PermissionUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class SystemLogonCommand implements CommandExecutor {
 	//private UserLoader userLoader;
@@ -34,6 +36,9 @@ public class SystemLogonCommand implements CommandExecutor {
 			}
 			sender.sendMessage(ChatColor.YELLOW + "/syslogon -create <new profile> <password> <max. permission level>");
 			sender.sendMessage(ChatColor.YELLOW + "/syslogon -update <profile> <new max. permission level>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -flag <profile> <" + StringUtil.parseList(SystemProfileFlag.values(), "|") + "> <true|false>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -info <profile>");
+			sender.sendMessage(ChatColor.YELLOW + "/syslogon -[de]activate <profile>");
 			sender.sendMessage(ChatColor.DARK_GRAY + "Note: Profiles and passwords cannot contain spaces.");
 			return true;
 		}
@@ -57,6 +62,54 @@ public class SystemLogonCommand implements CommandExecutor {
 			}
 			SystemProfileLoader.setProfileMaxPermissionLevel(args[1], PermissionLevel.valueOf(args[2]));
 			sender.sendMessage(ChatColor.GREEN + "Updated system profile successfully.");
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-flag")) {
+			if(sender instanceof Player) {
+				Player player = (Player) sender;
+				User user = UserLoader.fromPlayer(player);
+				if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.SYSOP, true)) return true;
+			}
+			SystemProfileLoader.setProfileFlag(args[1], args[2].toUpperCase(), Boolean.valueOf(args[3]));
+			sender.sendMessage(ChatColor.GREEN + "Updated system profile successfully.");
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-info")) {
+			if(sender instanceof Player) {
+				Player player = (Player) sender;
+				User user = UserLoader.fromPlayer(player);
+				if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.SYSOP, true)) return true;
+			}
+			SystemProfile profile = SystemProfileLoader.loadProfile(args[1]);
+			sender.sendMessage(ChatColor.GOLD + "Viewing system profile " + profile.getProfileName());
+			sender.sendMessage(ChatColor.YELLOW + "Status: " + ChatColor.RESET + (profile.isActive() ? "Active" : "Inactive"));
+			sender.sendMessage(ChatColor.YELLOW + "Max. Permission Level: " + ChatColor.RESET + profile.getMaxPermissionLevel());
+			sender.sendMessage(ChatColor.YELLOW + "Flags: " + ChatColor.RESET + profile.getFlags());
+			sender.sendMessage(ChatColor.YELLOW + "Current User: " + ChatColor.RESET + (profile.getCurrentUser() == null ? "(None)" : profile.getCurrentUser().getName()));
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-activate")) {
+			if(sender instanceof Player) {
+				Player player = (Player) sender;
+				User user = UserLoader.fromPlayer(player);
+				if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.SYSOP, true)) return true;
+			}
+			SystemProfileLoader.setActive(args[1], true);
+			sender.sendMessage(ChatColor.GREEN + "Activated system profile successfully.");
+			return true;
+		}
+		
+		if(args[0].equalsIgnoreCase("-deactivate")) {
+			if(sender instanceof Player) {
+				Player player = (Player) sender;
+				User user = UserLoader.fromPlayer(player);
+				if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.SYSOP, true)) return true;
+			}
+			SystemProfileLoader.setActive(args[1], false);
+			sender.sendMessage(ChatColor.GREEN + "Deactivated system profile successfully.");
 			return true;
 		}
 		
@@ -117,7 +170,7 @@ public class SystemLogonCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.GREEN + "Signed out of current system profile");
 		}
 		
-		SystemProfile profile = SystemProfileLoader.loadProfile(user, args[0], args[1]);
+		SystemProfile profile = SystemProfileLoader.authenticateProfile(user, args[0], args[1]);
 		if(profile == null) {
 			sender.sendMessage(ChatColor.RED + "Invalid credentials provided!");
 			return true;

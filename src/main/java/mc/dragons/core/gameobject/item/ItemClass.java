@@ -112,4 +112,12 @@ public class ItemClass extends GameObject {
 	public void setLore(List<String> lore) {
 		setData("lore", lore);
 	}
+	
+	public int getMaxStackSize() {
+		return (int) getData("maxStackSize");
+	}
+	
+	public void setMaxStackSize(int maxStackSize) {
+		setData("maxStackSize", maxStackSize);
+	}
 }

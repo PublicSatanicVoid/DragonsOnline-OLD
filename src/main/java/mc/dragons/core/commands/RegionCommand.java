@@ -4,7 +4,6 @@ import java.util.Map.Entry;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,8 +16,8 @@ import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.region.Region;
-import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
 
@@ -39,7 +38,8 @@ public class RegionCommand implements CommandExecutor {
 		if(sender instanceof Player) {
 			player = (Player) sender;
 			user = UserLoader.fromPlayer(player);
-			if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
+			if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_REGION, true)) return true;
+			//if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
 		}
 		else {
 			sender.sendMessage(ChatColor.RED + "This is an ingame-only command.");
@@ -53,10 +53,10 @@ public class RegionCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> corner <Corner#|go>" + ChatColor.GRAY + " set region boundary");
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> spawnrate [NpcClass] [SpawnRate]" + ChatColor.GRAY + " modify spawn rate");
 			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> flag <FlagName> <Value>" + ChatColor.GRAY + " modify region flags");
-			sender.sendMessage(ChatColor.DARK_GRAY + "  Flags: " + ChatColor.GRAY + "fullname(string), desc(string), lvmin(int), lvrec(int), showtitle(boolean), allowhostile(boolean), pvp(boolean), pve(boolean)");
-			sender.sendMessage(ChatColor.YELLOW + "/region -s <RegionName> boundary" + ChatColor.GRAY + " generates a wool boundary around the region");
+			sender.sendMessage(ChatColor.DARK_GRAY + "  Flags: " + ChatColor.GRAY + "fullname(string), desc(string), lvmin(int), lvrec(int), showtitle(boolean), allowhostile(boolean), pvp(boolean), pve(boolean), hidden(boolean), spawncap(int), nospawn(boolean), 3d(boolean)");
 			sender.sendMessage(ChatColor.YELLOW + "/region -d <RegionName>" + ChatColor.GRAY + " delete a region");
 			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Region names must not contain spaces.");
+			sender.sendMessage(ChatColor.GRAY + "View the full documentation at " + ChatColor.UNDERLINE + Dragons.STAFF_DOCUMENTATION);
 			return true;
 		}
 		
@@ -78,6 +78,7 @@ public class RegionCommand implements CommandExecutor {
 			}
 			Region region = (Region) regionLoader.registerNew(args[1], player.getLocation(), player.getLocation());
 			sender.sendMessage(ChatColor.GREEN + "Created region " + args[1] + ". Its database identifier is " + region.getIdentifier().toString());
+			return true;
 		}
 		
 		else if(args[0].equalsIgnoreCase("-l")) {
@@ -90,6 +91,7 @@ public class RegionCommand implements CommandExecutor {
 				}
 				sender.sendMessage(ChatColor.GRAY + "- " + region.getName() + floorData);
 			}
+			return true;
 		}
 		
 		else if(args[0].equalsIgnoreCase("-s")) {
@@ -136,7 +138,7 @@ public class RegionCommand implements CommandExecutor {
 					sender.sendMessage(ChatColor.GREEN + "Updated region corners successfully. Min=(" + StringUtil.vecToString(newMin) + "), Max=" + StringUtil.vecToString(newMax) + ")");
 					break;
 				default:
-					sender.sendMessage(ChatColor.RED + "Invalid corner number! Must be 1 or 2. /region -s <RegionName> corner <Corner#>");
+					sender.sendMessage(ChatColor.RED + "Invalid corner number! Must be 1 or 2. /region -s <RegionName> corner <Corner#|go>");
 					return true;
 				}
 				return true;
@@ -177,29 +179,19 @@ public class RegionCommand implements CommandExecutor {
 						return true;
 					}
 					sender.sendMessage(ChatColor.GREEN + "Flag " + args[3] + " has value " + value.toString());
+					return true;
 				}
 				String value = StringUtil.concatArgs(args, 4);
 				region.setFlag(args[3], value);
 				sender.sendMessage(ChatColor.GREEN + "Set flag " + args[3] + " to " + value);
 				return true;
 			}
-			if(args[2].equalsIgnoreCase("boundary")) {
-				Location min = region.getMin();
-				Location max = region.getMax();
-				for(int x = min.getBlockX(); x < max.getBlockX(); x++) {
-					for(int y = min.getBlockY(); y < max.getBlockY(); y++) {
-						for(int z = min.getBlockZ(); z < max.getBlockZ(); z++) {
-							max.getWorld().getBlockAt(x, y, z).setType(Material.WOOL);
-						}
-					}
-				}
-				sender.sendMessage(ChatColor.GREEN + "Generated a boundary around the region.");
-				return true;
-			}
-			
+			sender.sendMessage(ChatColor.RED + "Invalid arguments! For usage info, do /region");
+			return true;
 		}
 		
 		else if(args[0].equalsIgnoreCase("-d")) {
+			if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_DELETE, true)) return true;
 			if(args.length == 1) {
 				sender.sendMessage(ChatColor.RED + "Specify a region to delete! /region -d <RegionName>");
 				return true;
@@ -214,6 +206,7 @@ public class RegionCommand implements CommandExecutor {
 			return true;
 		}
 		
+		sender.sendMessage(ChatColor.RED + "Invalid arguments! For usage info, do /region");
 		return true;
 	}
 

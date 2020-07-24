@@ -93,7 +93,7 @@ public class Region extends GameObject {
 	public double getSpawnRate(String npcClass) {
 		for(Entry<String, Object> entry : ((Document) getData("spawnRates")).entrySet()) {
 			if(entry.getKey().equalsIgnoreCase(npcClass)) {
-				return (double)entry.getValue();
+				return (double) entry.getValue();
 			}
 		}
 		return 0.0;
@@ -120,8 +120,15 @@ public class Region extends GameObject {
 				&& test.getZ() >= getMin().getZ() && test.getZ() <= getMax().getZ();
 	}
 	
-	public boolean contains(Location test) {
+	public boolean containsXYZ(Location test) {
 		return containsXZ(test) && test.getY() >= getMin().getY() && test.getY() <= getMax().getY();
+	}
+	
+	public boolean contains(Location test) {
+		if(Boolean.valueOf(getFlags().getString("3d"))) {
+			return containsXYZ(test);
+		}
+		return containsXZ(test);
 	}
 	
 	public void updateCorners(Location corner1, Location corner2) {

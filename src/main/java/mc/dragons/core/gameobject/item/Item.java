@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
@@ -84,8 +85,7 @@ public class Item extends GameObject {
 		itemStack.setItemMeta(meta);
 		itemStack.setAmount(getQuantity());
 		if(isUnbreakable()) {
-			meta.spigot().setUnbreakable(true);
-			//Dragons.getInstance().getBridge().setItemStackUnbreakable(itemStack, true);
+			Dragons.getInstance().getBridge().setItemStackUnbreakable(itemStack, true);
 		}
 		this.itemStack = itemStack;
 	}
@@ -360,5 +360,13 @@ public class Item extends GameObject {
 	public void autoSave() {
 		super.autoSave();
 		setData("quantity", itemStack.getAmount());
+	}
+	
+	public int getMaxStackSize() {
+		return (int) getData("maxStackSize");
+	}
+	
+	public void setMaxStackSize(int maxStackSize) {
+		setData("maxStackSize", maxStackSize);
 	}
 }

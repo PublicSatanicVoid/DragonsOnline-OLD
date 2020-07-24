@@ -13,6 +13,7 @@ import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.Rank;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.PermissionUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class RankCommand implements CommandExecutor {
 	private UserLoader userLoader;
@@ -44,7 +45,7 @@ public class RankCommand implements CommandExecutor {
 			rank = Rank.valueOf(args[1]);
 		}
 		catch(Exception e) {
-			sender.sendMessage(ChatColor.RED + "An error occurred! Did you specify a valid rank?");
+			sender.sendMessage(ChatColor.RED + "Invalid rank! Valid ranks are " + StringUtil.parseList(Rank.values()));
 		}
 		if(rank == null) return true;
 		

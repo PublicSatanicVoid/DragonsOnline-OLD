@@ -35,7 +35,7 @@ public class ReloreCommand implements CommandExecutor {
 		Player player = (Player) sender;
 		User user = UserLoader.fromPlayer(player);
 		
-		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, true); //false);
+		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true); //false);
 		boolean valid = false; //user.getSkillLevel(SkillType.BLACKSMITHING) >= 40 && user.getGold() >= 100.0 || bypassed;
 		
 		if(!valid && !bypassed) {
@@ -51,7 +51,7 @@ public class ReloreCommand implements CommandExecutor {
 		
 		String[] reloreTo = ChatColor.translateAlternateColorCodes('&', StringUtil.concatArgs(args, 0)).split(Pattern.quote("|"));
 
-		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getItemInHand());
+		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getInventory().getItemInMainHand());
 		
 		if(heldItem == null) {
 			sender.sendMessage(ChatColor.RED + "You must hold the item you want to relore!");
@@ -59,7 +59,7 @@ public class ReloreCommand implements CommandExecutor {
 		}
 
 		heldItem.setCustom(true);
-		user.getPlayer().setItemInHand(heldItem.relore(reloreTo));
+		user.getPlayer().getInventory().setItemInMainHand(heldItem.relore(reloreTo));
 		sender.sendMessage(ChatColor.GREEN + "Relored your item successfully.");
 		
 		if(!bypassed) {

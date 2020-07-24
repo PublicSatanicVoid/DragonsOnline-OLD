@@ -54,7 +54,7 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 	}
 	
 	public ItemClass registerNew(String className, String name, ChatColor nameColor, Material material, int levelMin, double cooldown, double speedBoost, 
-			boolean unbreakable, boolean undroppable, double damage, double armor, List<String> lore) {
+			boolean unbreakable, boolean undroppable, double damage, double armor, List<String> lore, int maxStackSize) {
 		lazyLoadAll();
 		LOGGER.fine("Registering new item class (" + className + ")");
 		Document data = new Document("_id", UUID.randomUUID())
@@ -69,7 +69,8 @@ public class ItemClassLoader extends GameObjectLoader<ItemClass> {
 				.append("damage", damage)
 				.append("armor", armor)
 				.append("speedBoost", speedBoost)
-				.append("lore", lore);
+				.append("lore", lore)
+				.append("maxStackSize", maxStackSize);
 		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.ITEM_CLASS, data);
 		ItemClass itemClass = new ItemClass(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(itemClass);

@@ -23,7 +23,7 @@ public class MoveEventListener implements Listener {
 	@EventHandler
 	public void onMove(PlayerMoveEvent event) {
 		LOGGER.finest("Move event on " + event.getPlayer().getName() + " (" + StringUtil.locToString(event.getFrom()) + " [" + event.getFrom().getWorld().getName() + "] -> "
-				+ StringUtil.locToString(event.getTo()) + " [" + event.getTo().getWorld().getName() + "]");
+				+ StringUtil.locToString(event.getTo()) + " [" + event.getTo().getWorld().getName() + "])");
 		User user = UserLoader.fromPlayer(event.getPlayer());
 		if(user.hasDeathCountdown()) {
 			event.setTo(event.getFrom());

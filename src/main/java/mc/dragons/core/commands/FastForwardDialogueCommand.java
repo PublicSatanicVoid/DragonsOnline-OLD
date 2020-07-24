@@ -15,9 +15,7 @@ public class FastForwardDialogueCommand implements CommandExecutor {
 
 		if(sender instanceof Player) {
 			User user = UserLoader.fromPlayer((Player) sender);
-			while(user.hasActiveDialogue()) {
-				user.nextDialogue();
-			}
+			user.fastForwardDialogue();
 		}
 		
 		return true;

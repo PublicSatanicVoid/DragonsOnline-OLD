@@ -39,7 +39,7 @@ public class PlayerDropItemListener implements Listener {
 			return;
 		}
 		event.getItemDrop().setItemStack(itemLoader.registerNew(item).getItemStack());
-		user.takeItem(item);
+		user.takeItem(item, 1, true, false, true);
 	}
 	
 }

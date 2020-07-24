@@ -1,14 +1,14 @@
 package mc.dragons.core.gameobject.quest;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.bson.Document;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import mc.dragons.core.Dragons;
@@ -28,6 +28,25 @@ import mc.dragons.core.storage.StorageUtil;
 import mc.dragons.core.util.PathfindingUtil;
 
 public class QuestAction {
+	public static class QuestActionResult {
+		private boolean stageModified;
+		private boolean shouldPause;
+		
+		public QuestActionResult(boolean stageModified, boolean shouldPause) {
+			this.stageModified = stageModified;
+			this.shouldPause = shouldPause;
+		}
+		
+		public boolean wasStageModified() {
+			return stageModified;
+		}
+		
+		public boolean shouldPause() {
+			return shouldPause;
+		}
+	}
+	
+	
 	public static enum QuestActionType {
 		TELEPORT_PLAYER,
 		SPAWN_NPC,
@@ -37,7 +56,11 @@ public class QuestAction {
 		GIVE_XP,
 		GOTO_STAGE,
 		TAKE_ITEM,
-		GIVE_ITEM
+		GIVE_ITEM,
+		ADD_POTION_EFFECT,
+		REMOVE_POTION_EFFECT,
+		COMPLETION_HEADER,
+		WAIT
 	}
 
 	private static RegionLoader regionLoader;
@@ -95,6 +118,18 @@ public class QuestAction {
 			questAction.itemClass = itemClassLoader.getItemClassByClassName(action.getString("itemClass"));
 			questAction.quantity = action.getInteger("quantity");
 		}
+		else if(questAction.action == QuestActionType.ADD_POTION_EFFECT) {
+			questAction.effectType = PotionEffectType.getByName(action.getString("effectType"));
+			questAction.duration = action.getInteger("duration");
+			questAction.amplifier = action.getInteger("amplifier");
+		}
+		else if(questAction.action == QuestActionType.REMOVE_POTION_EFFECT) {
+			questAction.effectType = PotionEffectType.getByName(action.getString("effectType"));
+		}
+		else if(questAction.action == QuestActionType.WAIT) {
+			questAction.waitTime = action.getInteger("waitTime");
+		}
+		
 		questAction.quest = quest;
 		return questAction;
 	}
@@ -180,6 +215,39 @@ public class QuestAction {
 		return action;
 	}
 	
+	public static QuestAction addPotionEffectAction(Quest quest, PotionEffectType effectType, int duration, int amplifier) {
+		QuestAction action = new QuestAction();
+		action.action = QuestActionType.ADD_POTION_EFFECT;
+		action.effectType = effectType;
+		action.duration = duration;
+		action.amplifier = amplifier;
+		action.quest = quest;
+		return action;
+	}
+	
+	public static QuestAction removePotionEffectAction(Quest quest, PotionEffectType effectType) {
+		QuestAction action = new QuestAction();
+		action.action = QuestActionType.REMOVE_POTION_EFFECT;
+		action.effectType = effectType;
+		action.quest = quest;
+		return action;
+	}
+	
+	public static QuestAction completionHeaderAction(Quest quest) {
+		QuestAction action = new QuestAction();
+		action.action = QuestActionType.COMPLETION_HEADER;
+		action.quest = quest;
+		return action;
+	}
+	
+	public static QuestAction waitAction(Quest quest, int seconds) {
+		QuestAction action = new QuestAction();
+		action.action = QuestActionType.WAIT;
+		action.waitTime = seconds;
+		action.quest = quest;
+		return action;
+	}
+	
 	private Quest quest;
 	private QuestActionType action;
 	private String npcClassShortName;
@@ -192,6 +260,10 @@ public class QuestAction {
 	private ItemClass itemClass;
 	private int quantity;
 	private boolean notify; // For GOTO_STAGE
+	private PotionEffectType effectType;
+	private int duration;
+	private int amplifier;
+	private int waitTime;
 	
 	public Document toDocument() {
 		Document document = new Document("type", action.toString());
@@ -225,6 +297,15 @@ public class QuestAction {
 			document.append("itemClass", itemClass.getClassName())
 				.append("quantity", quantity);
 			break;
+		case ADD_POTION_EFFECT:
+			document.append("duration", duration).append("amplifier", amplifier);
+		case REMOVE_POTION_EFFECT:
+			document.append("effectType", effectType.getName());
+			break;
+		case COMPLETION_HEADER:
+			break;
+		case WAIT:
+			document.append("waitTime", waitTime);
 		}
 		return document;
 	}
@@ -272,12 +353,28 @@ public class QuestAction {
 		return quantity;
 	}
 	
+	public PotionEffectType getEffectType() {
+		return effectType;
+	}
+	
+	public int getDuration() {
+		return duration;
+	}
+	
+	public int getAmplifier() {
+		return amplifier;
+	}
+	
+	public int getWaitTime() {
+		return waitTime;
+	}
+	
 	/**
 	 * 
 	 * @param user
 	 * @return Whether the quest stage was modified.
 	 */
-	public boolean execute(User user) {
+	public QuestActionResult execute(User user) {
 		//user.p().sendMessage("Executing quest stage. Action type is " + action.toString());
 		if(action == QuestActionType.TELEPORT_PLAYER) {
 			user.getPlayer().teleport(to);
@@ -304,10 +401,11 @@ public class QuestAction {
 //			for(String line : dialogue) {
 //				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
 //			}
+			return new QuestActionResult(false, true);
 		}
 		else if(action == QuestActionType.GIVE_XP) {
+			user.getPlayer().sendMessage(ChatColor.GRAY + "+ " + ChatColor.LIGHT_PURPLE + xpAmount + " XP" + ChatColor.GRAY + " from quest " + quest.getQuestName());
 			user.addXP(xpAmount);
-			user.getPlayer().sendMessage(ChatColor.LIGHT_PURPLE + "+ " + xpAmount + " XP" + ChatColor.GRAY + " from quest " + quest.getQuestName());
 		}
 		else if(action == QuestActionType.GOTO_STAGE) {
 			user.updateQuestProgress(quest, quest.getSteps().get(stage), notify);
@@ -317,7 +415,7 @@ public class QuestAction {
 					user.updateQuests(null);
 				}
 			}.runTaskLater(Dragons.getInstance(), 1L);
-			return true;
+			return new QuestActionResult(true, false);
 		}
 		else if(action == QuestActionType.TELEPORT_NPC) {
 			npcClassDeferredLoad();
@@ -332,29 +430,20 @@ public class QuestAction {
 					user.updateQuestProgress(quest, quest.getSteps().get(stage), false);
 				}
 			});
-			return stage != -1;
+			return new QuestActionResult(stage != -1, false);
 		}
-		else if(action == QuestActionType.TAKE_ITEM) { // TODO clean this up maybeee
-			Set<Item> take = new HashSet<>();
-			int taken = 0;
+		else if(action == QuestActionType.TAKE_ITEM) {
+			int remaining = quantity;
 			for(ItemStack itemStack : user.getPlayer().getInventory().getContents()) {
 				Item item = ItemLoader.fromBukkit(itemStack);
 				if(item != null) {
 					if(item.getClassName().equals(itemClass.getClassName())) {
-						take.add(item);
-						taken += itemStack.getAmount();
+						int removeAmount = Math.min(remaining, item.getQuantity());
+						user.takeItem(item, removeAmount, true, true, false);
+						remaining -= item.getQuantity();
+						if(remaining <= 0) return new QuestActionResult(false, false);
 					}
 				}
-				if(taken >= quantity) break;
-			}
-			for(Item item : take) {
-				//user.getPlayer().getInventory().remove(itemStack);
-				user.takeItem(item, item.getQuantity(), true, false);
-			}
-			if(taken > quantity) {
-				Item compensate = itemLoader.registerNew(itemClass);
-				compensate.setQuantity(taken - quantity);
-				user.giveItem(compensate, true, false, true);
 			}
 		}
 		else if(action == QuestActionType.GIVE_ITEM) {
@@ -362,7 +451,29 @@ public class QuestAction {
 			item.setQuantity(quantity);
 			user.giveItem(item);
 		}
-		return false;
+		else if(action == QuestActionType.ADD_POTION_EFFECT) {
+			user.getPlayer().addPotionEffect(new PotionEffect(effectType, duration, amplifier), true);
+		}
+		else if(action == QuestActionType.REMOVE_POTION_EFFECT) {
+			user.getPlayer().removePotionEffect(effectType);
+		}
+		else if(action == QuestActionType.COMPLETION_HEADER) {
+			user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "Quest Complete: " + quest.getQuestName());
+			user.getPlayer().sendMessage(ChatColor.GRAY + "Rewards:");
+		}
+		else if(action == QuestActionType.WAIT) {
+			user.debug("Waiting " + waitTime + "s");
+			user.setQuestPaused(quest, true);
+			new BukkitRunnable() {
+				@Override public void run() {
+					user.debug("Resuming quest actions");
+					user.setQuestPaused(quest, false);
+					user.updateQuests(null);
+				}
+			}.runTaskLater(Dragons.getInstance(), 20L * waitTime);
+			return new QuestActionResult(false, true);
+		}
+		return new QuestActionResult(false, false);
 	}
 }
  

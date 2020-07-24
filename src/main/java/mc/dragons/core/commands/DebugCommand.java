@@ -119,7 +119,7 @@ public class DebugCommand implements CommandExecutor {
 			
 			if(args.length > 2) {
 				if(args[2].equalsIgnoreCase("-stop")) {
-					targetUser.removeDebug(sender);
+					targetUser.removeDebugTarget(sender);
 					sender.sendMessage(ChatColor.GREEN + "Stopped debugging " + target.getName());
 					return true;
 				}
@@ -127,7 +127,7 @@ public class DebugCommand implements CommandExecutor {
 				return true;
 			}
 			
-			targetUser.debugTo(sender);
+			targetUser.addDebugTarget(sender);
 			sender.sendMessage(ChatColor.GREEN + "Began debugging " + target.getName());
 		}
 		

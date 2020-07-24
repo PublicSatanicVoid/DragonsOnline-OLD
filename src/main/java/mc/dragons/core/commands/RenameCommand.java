@@ -33,7 +33,7 @@ public class RenameCommand implements CommandExecutor {
 		Player player = (Player) sender;
 		User user = UserLoader.fromPlayer(player);
 		
-		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, true); //false);
+		boolean bypassed = PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true); //false);
 		boolean valid = false; //user.getSkillLevel(SkillType.BLACKSMITHING) >= 20 && user.getGold() >= 50.0 || bypassed;
 		
 		if(!valid && !bypassed) {
@@ -48,7 +48,7 @@ public class RenameCommand implements CommandExecutor {
 		
 		String renameTo = ChatColor.YELLOW + ChatColor.translateAlternateColorCodes('&', StringUtil.concatArgs(args, 0));
 
-		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getItemInHand());
+		Item heldItem = ItemLoader.fromBukkit(user.getPlayer().getInventory().getItemInMainHand());
 		
 		if(heldItem == null) {
 			sender.sendMessage(ChatColor.RED + "You must hold the item you want to rename!");
@@ -58,7 +58,7 @@ public class RenameCommand implements CommandExecutor {
 		//heldItem.rename(renameTo);
 		//heldItem.relore(heldItem.getLore().toArray(new String[heldItem.getLore().size()]));
 		heldItem.setCustom(true);
-		user.getPlayer().setItemInHand(heldItem.rename(renameTo));
+		user.getPlayer().getInventory().setItemInMainHand(heldItem.rename(renameTo));
 		sender.sendMessage(ChatColor.GREEN + "Renamed your held item to " + renameTo);
 		
 		if(!bypassed) {

@@ -13,7 +13,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.command.CommandExecutor;
-import org.bukkit.craftbukkit.v1_8_R3.util.ForwardLogHandler;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,9 +20,13 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import com.comphenix.protocol.ProtocolLibrary;
 
+import mc.dragons.addons.npc.GuardAddon;
+import mc.dragons.core.addon.AddonRegistry;
 import mc.dragons.core.bridge.Bridge;
-import mc.dragons.core.bridge.impl.Bridge_Spigot1_8_R3;
+import mc.dragons.core.bridge.impl.Bridge_Spigot1_12_R1;
+import mc.dragons.core.commands.AddonCommand;
 import mc.dragons.core.commands.BypassDeathCountdownCommand;
+import mc.dragons.core.commands.ChannelCommand;
 import mc.dragons.core.commands.ClearInventoryCommand;
 import mc.dragons.core.commands.DebugCommand;
 import mc.dragons.core.commands.ExperimentCommand;
@@ -33,6 +36,7 @@ import mc.dragons.core.commands.FloorCommand;
 import mc.dragons.core.commands.GamemodeCommand;
 import mc.dragons.core.commands.GoToFloorCommand;
 import mc.dragons.core.commands.GodModeCommand;
+import mc.dragons.core.commands.HelpCommand;
 import mc.dragons.core.commands.ILostTheLousyStickCommand;
 import mc.dragons.core.commands.InfoCommand;
 import mc.dragons.core.commands.ItemCommand;
@@ -41,6 +45,8 @@ import mc.dragons.core.commands.LagCommand;
 import mc.dragons.core.commands.LogLevelCommand;
 import mc.dragons.core.commands.MyQuestsCommand;
 import mc.dragons.core.commands.NPCCommand;
+import mc.dragons.core.commands.PlaceholderCommand;
+import mc.dragons.core.commands.PrivateMessageCommands;
 import mc.dragons.core.commands.PunishCommands;
 import mc.dragons.core.commands.QuestCommand;
 import mc.dragons.core.commands.RankCommand;
@@ -50,6 +56,8 @@ import mc.dragons.core.commands.ReloreCommand;
 import mc.dragons.core.commands.RemovePunishmentCommand;
 import mc.dragons.core.commands.RenameCommand;
 import mc.dragons.core.commands.ServerOptionsCommand;
+import mc.dragons.core.commands.ShoutCommand;
+import mc.dragons.core.commands.SpeedCommand;
 import mc.dragons.core.commands.SystemLogonCommand;
 import mc.dragons.core.commands.TestQuestCommand;
 import mc.dragons.core.commands.UnPunishCommands;
@@ -87,6 +95,7 @@ import mc.dragons.core.gameobject.npc.NPCClass;
 import mc.dragons.core.gameobject.quest.Quest;
 import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.storage.StorageManager;
+import mc.dragons.core.storage.impl.LocalStorageManager;
 import mc.dragons.core.storage.impl.MongoConfig;
 import mc.dragons.core.storage.impl.MongoStorageManager;
 import mc.dragons.core.tasks.AutoSaveTask;
@@ -106,8 +115,10 @@ public class Dragons extends JavaPlugin {
 	private static Dragons INSTANCE;
 	private Bridge bridge;
 	
-	private StorageManager storageManager;
+	private StorageManager persistentStorageManager;
+	private LocalStorageManager localStorageManager;
 	private GameObjectRegistry gameObjectRegistry;
+	private AddonRegistry addonRegistry;
 	
 	private BukkitRunnable autoSaveRunnable;
 	private BukkitRunnable spawnEntityRunnable;
@@ -116,10 +127,12 @@ public class Dragons extends JavaPlugin {
 	private LagMonitorTask lagMonitorTask;
 	
 	private ServerOptions serverOptions;
+	private boolean debug;
 	
-	public static final String serverName = Bukkit.getServer().getClass().getPackage().getName();
-	public static final String serverVersion = serverName.substring(serverName.lastIndexOf(".") + 1, serverName.length()).substring(1);
+	public static final String BUKKIT_PACKAGE_NAME = Bukkit.getServer().getClass().getPackage().getName();
+	public static final String BUKKIT_API_VERSION = BUKKIT_PACKAGE_NAME.substring(BUKKIT_PACKAGE_NAME.lastIndexOf(".") + 1, BUKKIT_PACKAGE_NAME.length()).substring(1);
 	
+	public static final String STAFF_DOCUMENTATION = "https://bit.ly/30FS0cW";
 	
 	// JTN's first comment
 	
@@ -136,20 +149,25 @@ public class Dragons extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		getLogger().info("Searching for compatible version...");
-		switch(serverVersion) {
+		switch(BUKKIT_API_VERSION) {
 		case "1_8_R3":
-			bridge = new Bridge_Spigot1_8_R3();
+			bridge = null; //new Bridge_Spigot1_8_R3(); // Until we create a modular setup, which seems pointless if we know the target version
+			break;
+		case "1_12_R1":
+			bridge = new Bridge_Spigot1_12_R1();
 			break;
 		default:
-			getLogger().severe("Incompatible server version (" + serverVersion + ")");
+			getLogger().severe("Incompatible server version (" + BUKKIT_API_VERSION + ")");
 			getLogger().severe("Cannot run Dragons.");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
 		
 		getLogger().info("Initializing storage and registries...");
-		storageManager = new MongoStorageManager(this, MongoConfig.HOST, MongoConfig.PORT, MongoConfig.USER, MongoConfig.PASSWORD, MongoConfig.AUTH_DB);
-		gameObjectRegistry = new GameObjectRegistry(this, storageManager);
+		persistentStorageManager = new MongoStorageManager(this, MongoConfig.HOST, MongoConfig.PORT, MongoConfig.USER, MongoConfig.PASSWORD, MongoConfig.AUTH_DB);
+		localStorageManager = new LocalStorageManager();
+		gameObjectRegistry = new GameObjectRegistry(this, persistentStorageManager);
+		addonRegistry = new AddonRegistry();
 		
 		autoSaveRunnable = new AutoSaveTask(this);
 		spawnEntityRunnable = new SpawnEntityTask(this);
@@ -160,9 +178,11 @@ public class Dragons extends JavaPlugin {
 		serverOptions = new ServerOptions();
 		getLogger().setLevel(serverOptions.getLogLevel());
 		
+		saveDefaultConfig();
+		
 		getLogger().info("Registering debug logging system...");
 		Logger globalLogger = Logger.getLogger("");
-		globalLogger.addHandler(new ForwardLogHandler() {
+		globalLogger.addHandler(new org.bukkit.craftbukkit.v1_12_R1.util.ForwardLogHandler() {
 			private Map<String, org.apache.logging.log4j.Logger> cachedLoggers = new ConcurrentHashMap<String, org.apache.logging.log4j.Logger>();
 			
 			private org.apache.logging.log4j.Logger getLogger(String name) {
@@ -187,6 +207,20 @@ public class Dragons extends JavaPlugin {
 			}
 		});
 		
+		((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger()).addFilter(new LogFilter());
+
+		serverOptions.setLogLevel(Level.parse(getConfig().getString("loglevel")));
+		debug = getConfig().getBoolean("debug");
+		if(debug) {
+			if(serverOptions.getLogLevel().intValue() > Level.CONFIG.intValue()) {
+				serverOptions.setLogLevel(Level.CONFIG);
+			}
+			serverOptions.setVerifyIntegrityEnabled(false);
+			getLogger().config("========================================================================");
+			getLogger().config("THIS SERVER IS IN DEVELOPMENT MODE. GAME INTEGRITY WILL NOT BE VERIFIED.");
+			getLogger().config("========================================================================");
+		}
+		
 		
 		PluginManager pluginManager = getServer().getPluginManager();
 		
@@ -206,13 +240,16 @@ public class Dragons extends JavaPlugin {
 		pluginManager.registerEvents(new EntityTargetEventListener(this), this);
 		pluginManager.registerEvents(new InventoryEventListeners(), this);
 		
+		addonRegistry.register(new GuardAddon());
+		
+		
 		getLogger().info("Loading game objects...");
 		// Order here is important! If floors aren't loaded first, then their worlds aren't loaded first, 
 		// and then constructing regions causes NPEs trying to access their worlds
 		((FloorLoader) GameObjectType.FLOOR.<Floor>getLoader()).lazyLoadAll();
 		((RegionLoader) GameObjectType.REGION.<Region>getLoader()).lazyLoadAll();
-		((NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader()).lazyLoadAll();
 		((ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader()).lazyLoadAll();
+		((NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader()).lazyLoadAll();
 		((QuestLoader) GameObjectType.QUEST.<Quest>getLoader()).lazyLoadAll();
 		new BukkitRunnable() {
 			@Override public void run() {
@@ -266,6 +303,16 @@ public class Dragons extends JavaPlugin {
 		getCommand("feedback").setExecutor(new FeedbackCommand());
 		getCommand("fastforwarddialogue").setExecutor(new FastForwardDialogueCommand());
 		getCommand("myquests").setExecutor(new MyQuestsCommand());
+		getCommand("speed").setExecutor(new SpeedCommand());
+		PrivateMessageCommands privateMessageCommands = new PrivateMessageCommands();
+		getCommand("msg").setExecutor(privateMessageCommands);
+		getCommand("reply").setExecutor(privateMessageCommands);
+		getCommand("chatspy").setExecutor(privateMessageCommands);
+		getCommand("shout").setExecutor(new ShoutCommand());
+		getCommand("channel").setExecutor(new ChannelCommand());
+		getCommand("help").setExecutor(new HelpCommand());
+		getCommand("placeholder").setExecutor(new PlaceholderCommand());
+		getCommand("addon").setExecutor(new AddonCommand(this));
 		
 		getLogger().info("Scheduling tasks...");
 		autoSaveRunnable.runTaskTimer(this, 0L, serverOptions.getAutoSavePeriodTicks());
@@ -308,12 +355,20 @@ public class Dragons extends JavaPlugin {
 		return INSTANCE;
 	}
 	
-	public StorageManager getStorageManager() {
-		return storageManager;
+	public StorageManager getPersistentStorageManager() {
+		return persistentStorageManager;
+	}
+	
+	public LocalStorageManager getLocalStorageManager() {
+		return localStorageManager;
 	}
 	
 	public GameObjectRegistry getGameObjectRegistry() {
 		return gameObjectRegistry;
+	}
+	
+	public AddonRegistry getAddonRegistry() {
+		return addonRegistry;
 	}
 	
 	public ServerOptions getServerOptions() {

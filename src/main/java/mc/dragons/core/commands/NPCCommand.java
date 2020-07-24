@@ -17,7 +17,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import mc.dragons.addons.npc.NPCAddon;
 import mc.dragons.core.Dragons;
+import mc.dragons.core.addon.Addon;
+import mc.dragons.core.addon.AddonRegistry;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.loader.GameObjectRegistry;
@@ -35,8 +38,8 @@ import mc.dragons.core.gameobject.npc.NPCCondition.NPCConditionType;
 import mc.dragons.core.gameobject.npc.NPCConditionalActions;
 import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
 import mc.dragons.core.gameobject.quest.Quest;
-import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
 
@@ -46,6 +49,7 @@ public class NPCCommand implements CommandExecutor {
 	private NPCClassLoader npcClassLoader;
 	private QuestLoader questLoader;
 	private GameObjectRegistry gameObjectRegistry;
+	private AddonRegistry addonRegistry;
 	
 	public NPCCommand(Dragons instance) {
 		//userLoader = (UserLoader) GameObjectType.USER.<User>getLoader();
@@ -53,6 +57,7 @@ public class NPCCommand implements CommandExecutor {
 		npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
 		questLoader = (QuestLoader) GameObjectType.QUEST.<Quest>getLoader();
 		gameObjectRegistry = instance.getGameObjectRegistry();
+		addonRegistry = instance.getAddonRegistry();
 	}
 
 	@Override
@@ -62,7 +67,8 @@ public class NPCCommand implements CommandExecutor {
 		if(sender instanceof Player) {
 			player = (Player) sender;
 			user = UserLoader.fromPlayer(player);
-			if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
+			if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_NPC, true)) return true;
+			//if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
 		}
 		else {
 			sender.sendMessage(ChatColor.RED + "This is an ingame-only command.");
@@ -71,7 +77,7 @@ public class NPCCommand implements CommandExecutor {
 		
 		if(args.length == 0) {
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -c <ClassName> <EntityType> <MaxHealth> <Level> <NPCType>" + ChatColor.GRAY + " create a new NPC class");
-			sender.sendMessage(ChatColor.GRAY + "Valid NPCTypes are: HOSTILE, NEUTRAL, QUEST, and SHOP.");
+			sender.sendMessage(ChatColor.GRAY + " * Valid NPCTypes are: " + StringUtil.parseList(NPCType.values()));
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -l" + ChatColor.GRAY + " list all NPC classes");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName>" + ChatColor.GRAY + " view information about NPC class");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> type <EntityType>" + ChatColor.GRAY + " change type of NPC class");
@@ -87,15 +93,17 @@ public class NPCCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> behavior|b <CLICK|HIT> <#> condition <add [!]<ConditionType> <ConditionParams...>|remove <#>>" + ChatColor.GRAY + " add/remove conditions on an NPC behavior");
 			sender.sendMessage(ChatColor.DARK_GRAY + " * Adding a ! before the ConditionType will negate the condition.");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> behavior|b <CLICK|HIT> <#> action <add <ActionType> <ActionParams...>|remove <#>>" + ChatColor.GRAY + " add/remove actions on an NPC behavior");
+			sender.sendMessage(ChatColor.YELLOW + "/npc class -s <ClassName> addon [<add|remove> <AddonName>]");
 			sender.sendMessage(ChatColor.YELLOW + "/npc class -d <ClassName>" + ChatColor.GRAY + " delete NPC class");
 			sender.sendMessage(ChatColor.YELLOW + "/npc spawn <ClassName>  [-phase <Player>]" + ChatColor.GRAY + " spawn a new NPC of the given class");
 			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Class names must not contain spaces.");
+			sender.sendMessage(ChatColor.GRAY + "View the full documentation at " + ChatColor.UNDERLINE + Dragons.STAFF_DOCUMENTATION);
 			return true;
 		}
 		
-		if(args[0].equalsIgnoreCase("class")) {
+		if(args[0].equalsIgnoreCase("class") || args[0].equalsIgnoreCase("c")) {
 			if(args.length == 1) {
-				sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+				sender.sendMessage(ChatColor.RED + "Insufficient arguments! For usage info, do /npc");
 				return true;
 			}
 			if(args[1].equalsIgnoreCase("-c")) {
@@ -104,10 +112,18 @@ public class NPCCommand implements CommandExecutor {
 					return true;
 				}
 				String npcClassName = args[2];
-				EntityType type = EntityType.valueOf(args[3].toUpperCase());
+				EntityType type = StringUtil.parseEntityType(sender, args[3]);
+				if(type == null) return true;
 				double maxHealth = Double.valueOf(args[4]);
 				int level = Integer.valueOf(args[5]);
-				NPCType npcType = NPCType.valueOf(args[6]);
+				NPCType npcType = null;
+				try {
+					npcType = NPCType.valueOf(args[6]);
+				}
+				catch(Exception e) {
+					sender.sendMessage(ChatColor.RED + "Invalid NPC type! Valid NPC types are " + StringUtil.parseList(NPCType.values()));
+					return true;
+				}
 				NPCClass npcClass = npcClassLoader.registerNew(npcClassName, "Unnamed Entity", type, maxHealth, level, npcType);
 				if(npcClass == null) {
 					sender.sendMessage(ChatColor.RED + "An error occurred! Does a class by this name already exist?");
@@ -126,12 +142,12 @@ public class NPCCommand implements CommandExecutor {
 			}
 			if(args[1].equalsIgnoreCase("-s")) {
 				if(args.length < 3) {
-					sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! For usage info, do /npc");
 					return true;
 				}
 				NPCClass npcClass = npcClassLoader.getNPCClassByClassName(args[2]);
 				if(npcClass == null) {
-					sender.sendMessage(ChatColor.RED + "That's not a valid NPC class name!");
+					sender.sendMessage(ChatColor.RED + "That's not a valid NPC class name! To see all NPC classes, do /npc class -l");
 					return true;
 				}
 				if(args.length == 3) {
@@ -146,49 +162,44 @@ public class NPCCommand implements CommandExecutor {
 					sender.sendMessage(ChatColor.GRAY + "Immortal: " + ChatColor.GREEN + npcClass.isImmortal());
 					sender.sendMessage(ChatColor.GRAY + "/npc class -s " + npcClass.getClassName() + " loot" + ChatColor.YELLOW + " to view loot table");
 					sender.sendMessage(ChatColor.GRAY + "/npc class -s " + npcClass.getClassName() + " behavior" + ChatColor.YELLOW + " to view behaviors");
+					sender.sendMessage(ChatColor.GRAY + "/npc class -s " + npcClass.getClassName() + " addon" + ChatColor.YELLOW + " to view addons");
 					return true;
 				}
-				if(args[3].equalsIgnoreCase("type")) {
-					EntityType type = EntityType.valueOf(args[4].toUpperCase());
-					npcClass.setEntityType(type);
-					sender.sendMessage(ChatColor.GREEN + "Updated entity type successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("name")) {
-					npcClass.setName(StringUtil.concatArgs(args, 4));
-					sender.sendMessage(ChatColor.GREEN + "Updated entity display name successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("health")) {
-					npcClass.setMaxHealth(Double.valueOf(args[4]));
-					sender.sendMessage(ChatColor.GREEN + "Updated entity max health successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("level")) {
-					npcClass.setLevel(Integer.valueOf(args[4]));
-					sender.sendMessage(ChatColor.GREEN + "Updated entity level successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("npctype")) {
-					npcClass.setNPCType(NPCType.valueOf(args[4]));
-					sender.sendMessage(ChatColor.GREEN + "Updated NPC type successfully.");
-					if((npcClass.getNPCType() == NPCType.QUEST || npcClass.getNPCType() == NPCType.SHOP) && npcClass.hasAI()) {
-						npcClass.setAI(false);
-						sender.sendMessage(ChatColor.GREEN + "Automatically toggled off AI for this class based on the NPC type.");
+				if(args[3].equalsIgnoreCase("addon") || args[3].equalsIgnoreCase("addons") || args[3].equalsIgnoreCase("a")) {
+					if(args.length == 4) {
+						sender.sendMessage(ChatColor.GREEN + "Listing addons for NPC class " + npcClass.getClassName() + ":");
+						for(NPCAddon addon : npcClass.getAddons()) {
+							sender.sendMessage(ChatColor.GRAY + "- " + addon.getName());
+						}
+						return true;
 					}
+					if(args.length == 5) {
+						sender.sendMessage(ChatColor.RED + "Specify an addon name! For a list of addons, do /addon -l");
+						return true;
+					}
+					Addon addon = addonRegistry.getAddonByName(args[5]);
+					if(addon == null) {
+						sender.sendMessage(ChatColor.RED + "Invalid addon name! For a list of addons, do /addon -l");
+						return true;
+					}
+					if(!(addon instanceof NPCAddon)) {
+						sender.sendMessage(ChatColor.RED + "Invalid addon type! Only NPC Addons can be applied to NPCs.");
+						return true;
+					}
+					if(args[4].equalsIgnoreCase("add")) {
+						npcClass.addAddon((NPCAddon) addon);
+						sender.sendMessage(ChatColor.GREEN + "Added addon " + addon.getName() + " to NPC class " + npcClass.getClassName() + ".");
+						return true;
+					}
+					if(args[4].equalsIgnoreCase("remove")) {
+						npcClass.removeAddon((NPCAddon) addon);
+						sender.sendMessage(ChatColor.GREEN + "Removed addon " + addon.getName() + " from NPC class " + npcClass.getClassName() + ".");
+						return true;
+					}
+					sender.sendMessage(ChatColor.RED + "Invalid arguments! /npc class -s <ClassName> addon [<add|remove> <AddonName>]");
 					return true;
 				}
-				if(args[3].equalsIgnoreCase("ai")) {
-					npcClass.setAI(Boolean.valueOf(args[4]));
-					sender.sendMessage(ChatColor.GREEN + "Updated entity AI successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("immortal")) {
-					npcClass.setImmortal(Boolean.valueOf(args[4]));
-					sender.sendMessage(ChatColor.GREEN + "Updated entity immortality successfully.");
-					return true;
-				}
-				if(args[3].equalsIgnoreCase("loot")) {
+				if(args[3].equalsIgnoreCase("loot") || args[3].equalsIgnoreCase("l")) {
 					if(args.length == 4) {
 						sender.sendMessage(ChatColor.GREEN + "Loot Table:");
 						for(Entry<String, Map<String, Double>> regionLoot : npcClass.getLootTable().asMap().entrySet()) {
@@ -197,6 +208,10 @@ public class NPCCommand implements CommandExecutor {
 								sender.sendMessage(ChatColor.GRAY + "   - " + itemLoot.getKey() + ": " + itemLoot.getValue() + "%");
 							}
 						}
+						return true;
+					}
+					if(args.length < 7) {
+						sender.sendMessage(ChatColor.RED + "Invalid arguments! /npc class -s <ClassName> loot [<RegionShortName> <ItemClassShortName> <Chance%>]");
 						return true;
 					}
 					if(args[6].equalsIgnoreCase("del")) {
@@ -226,6 +241,7 @@ public class NPCCommand implements CommandExecutor {
 								j = 0;
 								for(NPCAction action : entry.getValue()) {
 									sender.sendMessage(ChatColor.DARK_GREEN + "      #" + j + ": " + ChatColor.GRAY + displayNPCAction(action));
+									j++;
 								}
 								i++;
 							}
@@ -246,6 +262,10 @@ public class NPCCommand implements CommandExecutor {
 						return true;
 					}
 					else if(args[5].equalsIgnoreCase("remove")) {
+						if(args.length == 6) {
+							sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> remove <#>");
+							return true;
+						}
 						behaviors.remove((int) Integer.valueOf(args[6]));
 						npcClass.getStorageAccess().update(new Document("conditionals", conditionals));
 						parsedBehaviors.removeLocalEntry(Integer.valueOf(args[6]));
@@ -253,12 +273,27 @@ public class NPCCommand implements CommandExecutor {
 						return true;
 					}
 					else {
-						int behaviorNo = Integer.valueOf(args[5]);
+						if(args.length < 8) {
+							sender.sendMessage(ChatColor.RED + "Insufficient arguments! For usage info, do /npc");
+							return true;
+						}
+						int behaviorNo = 0;
+						try {
+							behaviorNo = Integer.valueOf(args[5]);
+						}
+						catch(IndexOutOfBoundsException e) {
+							sender.sendMessage(ChatColor.RED + "Invalid behavior index! To view behavior info, do /npc class -s <ClassName> behavior");
+							return true;
+						}
 						//Entry<List<NPCCondition>, List<NPCAction>> conditions = behaviorsParsed.getConditional(behaviorNo);
 						Document behavior = behaviors.get(behaviorNo);
 						if(args[6].equalsIgnoreCase("condition") || args[6].equalsIgnoreCase("c")) {
 							List<Document> conditions = behavior.getList("conditions", Document.class);
 							if(args[7].equalsIgnoreCase("add")) {
+								if(args.length < 10) {
+									sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> <#> condition add <ConditionType> <ConditionParams...>");
+									return true;
+								}
 								boolean inverted = args[8].startsWith("!");
 								if(inverted) args[8] = args[8].replace("!", "");
 								NPCConditionType condType = NPCConditionType.valueOf(args[8]);
@@ -281,6 +316,10 @@ public class NPCCommand implements CommandExecutor {
 								behaviorsLocal.getConditional(behaviorNo).getKey().add(cond);
 							}
 							else if(args[7].equalsIgnoreCase("remove")) {
+								if(args.length < 9) {
+									sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> <#> condition remove <#>");
+									return true;
+								}
 								conditions.remove((int) Integer.valueOf(args[8]));
 								behaviorsLocal.getConditional(behaviorNo).getKey().remove((int) Integer.valueOf(args[8]));
 							}
@@ -293,20 +332,44 @@ public class NPCCommand implements CommandExecutor {
 								NPCAction action = null;
 								switch(actionType) {
 								case BEGIN_DIALOGUE:
-									action = NPCAction.beginDialogue(npcClass, Arrays.asList(StringUtil.concatArgs(args, 9).split(Pattern.quote("|"))));
+									if(args.length < 10) {
+										sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> <#> action add BEGIN_DIALOGUE <DialogueLine1|DialogueLine2|...>");
+										return true;
+									}
+									action = NPCAction.beginDialogue(npcClass, Arrays.asList(StringUtil.concatArgs(args, 9)
+											.replaceAll(Pattern.quote("%PH%"), user.getLocalData().get("placeholder", "(Empty placeholder)"))
+											.split(Pattern.quote("|"))));
 									break;
 								case BEGIN_QUEST:
+									if(args.length < 10) {
+										sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> <#> action add BEGIN_QUEST <QuestShortName>");
+										return true;
+									}
 									action = NPCAction.beginQuest(npcClass, questLoader.getQuestByName(args[9]));
+									break;
+								case TELEPORT_NPC:
+									action = NPCAction.teleportNPC(npcClass, player.getLocation());
+									break;
+								case PATHFIND_NPC:
+									action = NPCAction.pathfindNPC(npcClass, player.getLocation());
 									break;
 								}
 								actions.add(action.toDocument());
 								behaviorsLocal.getConditional(behaviorNo).getValue().add(action);
 							}
 							else if(args[7].equalsIgnoreCase("remove")) {
+								if(args.length < 9) {
+									sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> behavior <CLICK|HIT> <#> action remove <#>");
+									return true;
+								}
 								actions.remove((int) Integer.valueOf(args[8]));
 								behaviorsLocal.getConditional(behaviorNo).getValue().remove((int) Integer.valueOf(args[8]));
 							}
 							behavior.append("actions", actions);
+						}
+						else {
+							sender.sendMessage(ChatColor.RED + "Invalid behavioral arguments! For usage info, do /npc");
+							return true;
 						}
 						npcClass.getStorageAccess().update(new Document("conditionals", conditionals));
 						sender.sendMessage(ChatColor.GREEN + "Updated behavior successfully.");
@@ -314,9 +377,54 @@ public class NPCCommand implements CommandExecutor {
 					}
 					
 				}
+				if(args.length == 4) {
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! /npc class -s <ClassName> <Attribute> <Value>");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("type")) {
+					EntityType type = EntityType.valueOf(args[4].toUpperCase());
+					npcClass.setEntityType(type);
+					sender.sendMessage(ChatColor.GREEN + "Updated entity type successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("name")) {
+					npcClass.setName(StringUtil.concatArgs(args, 4));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity display name successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("health")) {
+					npcClass.setMaxHealth(Double.valueOf(args[4]));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity max health successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("level")) {
+					npcClass.setLevel(Integer.valueOf(args[4]));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity level successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("npctype")) {
+					npcClass.setNPCType(NPCType.valueOf(args[4]));
+					sender.sendMessage(ChatColor.GREEN + "Updated NPC type successfully.");
+					if(!npcClass.getNPCType().hasAIByDefault() && npcClass.hasAI()) {
+						npcClass.setAI(false);
+						sender.sendMessage(ChatColor.GREEN + "Automatically toggled off AI for this class based on the NPC type.");
+					}
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("ai")) {
+					npcClass.setAI(Boolean.valueOf(args[4]));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity AI successfully.");
+					return true;
+				}
+				if(args[3].equalsIgnoreCase("immortal")) {
+					npcClass.setImmortal(Boolean.valueOf(args[4]));
+					sender.sendMessage(ChatColor.GREEN + "Updated entity immortality successfully.");
+					return true;
+				}
 				return true;
 			}
 			if(args[1].equalsIgnoreCase("-d")) {
+				if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_DELETE, true)) return true;
 				if(args.length == 2) {
 					sender.sendMessage(ChatColor.RED + "Specify a class name to delete! /npc class -d <ClassName>");
 					return true;
@@ -332,6 +440,10 @@ public class NPCCommand implements CommandExecutor {
 			}
 		}
 		if(args[0].equalsIgnoreCase("spawn")) {
+			if(args.length == 1) {
+				sender.sendMessage(ChatColor.RED + "Specify an NPC class to spawn! /npc spawn <ClassName>");
+				return true;
+			}
 			NPC npc = npcLoader.registerNew(player.getWorld(), player.getLocation(), args[1]);
 			sender.sendMessage(ChatColor.GREEN + "Spawned an NPC of class " + args[1] + " at your location.");
 			if(args.length >= 3) {
@@ -344,6 +456,7 @@ public class NPCCommand implements CommandExecutor {
 			return true;
 		}
 		
+		sender.sendMessage(ChatColor.RED + "Invalid arguments! For usage information, do /npc");
 		return true;
 	}
 	
@@ -376,9 +489,10 @@ public class NPCCommand implements CommandExecutor {
 		case BEGIN_QUEST:
 			result += action.getQuest().getName();
 			break;
-		default:
+		case TELEPORT_NPC:
+		case PATHFIND_NPC:
+			result += StringUtil.locToString(action.getTo());
 			break;
-		
 		}
 		result += ChatColor.GRAY + ")";
 		return result;

@@ -44,6 +44,9 @@ public class ExperimentCommand implements CommandExecutor {
 			sender.sendMessage(ChatColor.YELLOW + "/experiment testperm <node>");
 			sender.sendMessage(ChatColor.GRAY + "User-related experiments");
 			sender.sendMessage(ChatColor.YELLOW + "/experiment listusers");
+			sender.sendMessage(ChatColor.YELLOW + "/experiment levelprogress");
+			sender.sendMessage(ChatColor.YELLOW + "/experiment setmcexp <exp>");
+			sender.sendMessage(ChatColor.YELLOW + "/experiment getmcexp");
 			sender.sendMessage(ChatColor.GRAY + "Item-related experiments");
 			sender.sendMessage(ChatColor.YELLOW + "/experiment helditemdata");
 			sender.sendMessage(ChatColor.GRAY + "Entity-related experiments");
@@ -75,7 +78,7 @@ public class ExperimentCommand implements CommandExecutor {
 		
 		
 		if(args[0].equalsIgnoreCase("helditemdata")) {
-			ItemStack itemStack = player.getItemInHand();
+			ItemStack itemStack = player.getInventory().getItemInMainHand();
 			sender.sendMessage("meta=" + itemStack.getItemMeta());
 			sender.sendMessage("lore=" + itemStack.getItemMeta().getLore());
 			sender.sendMessage("lore sz=" + itemStack.getItemMeta().getLore().size());
@@ -99,6 +102,17 @@ public class ExperimentCommand implements CommandExecutor {
 			}
 		}
 		
+		if(args[0].equalsIgnoreCase("levelprogress")) {
+			sender.sendMessage("Level progress: " + user.getLevelProgress());
+		}
+		
+		if(args[0].equalsIgnoreCase("getmcexp")) {
+			sender.sendMessage("MC Exp: " + player.getExp());
+		}
+		
+		if(args[0].equalsIgnoreCase("setmcexp")) {
+			player.setExp(Float.valueOf(args[1]));
+		}
 		
 		if(args[0].equalsIgnoreCase("pathfind")) {
 			Location spawnLoc = player.getLocation().add(player.getLocation().getDirection().clone().setY(0).normalize().multiply(10.0));

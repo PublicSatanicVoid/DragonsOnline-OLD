@@ -1,5 +1,6 @@
 package mc.dragons.core.events;
 
+import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
@@ -17,6 +18,7 @@ import mc.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.StringUtil;
 
@@ -43,6 +45,12 @@ public class EntityDeathEventListener implements Listener {
 		User user = UserLoader.fromPlayer(player);
 		
 		Entity target = event.getEntity();
+		
+		for(Entity passenger : new ArrayList<>(target.getPassengers())) {
+			target.removePassenger(passenger);
+			passenger.remove();
+		}
+		
 		NPC npc = NPCLoader.fromBukkit(target);
 		if(npc == null) return;
 		
@@ -54,6 +62,8 @@ public class EntityDeathEventListener implements Listener {
 		npc.updateHealthBar(); // Show zero health
 		registry.removeFromDatabase(npc);
 		
+		npc.getNPCClass().handleDeath(npc);
+		
 		if(player == null) return;
 		
 		Location loc = user.getPlayer().getLocation();
@@ -64,9 +74,11 @@ public class EntityDeathEventListener implements Listener {
 			world.dropItem(loc, item.getItemStack());
 		}
 		
-		int xpReward = getXPReward(user.getLevel(), npc.getLevel());
-		user.sendActionBar("+ " + ChatColor.GREEN + xpReward + " XP");
-		user.addXP(xpReward);
+		if(npc.getNPCType() == NPCType.HOSTILE) { 
+			int xpReward = getXPReward(user.getLevel(), npc.getLevel());
+			user.sendActionBar("+ " + ChatColor.GREEN + xpReward + " XP");
+			user.addXP(xpReward);
+		}
 		
 		user.updateQuests(event);
 	}

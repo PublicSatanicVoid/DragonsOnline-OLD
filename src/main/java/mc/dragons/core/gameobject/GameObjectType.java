@@ -22,15 +22,15 @@ import mc.dragons.core.gameobject.loader.UserLoader;
  *
  */
 public enum GameObjectType {
-	USER(UserLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	ITEM_CLASS(ItemClassLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	ITEM(ItemLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
- 	NPC(NPCLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
- 	NPC_CLASS(NPCClassLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	QUEST(QuestLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	STRUCTURE(StructureLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	REGION(RegionLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager())),
-	FLOOR(FloorLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getStorageManager()));
+	USER(UserLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	ITEM_CLASS(ItemClassLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	ITEM(ItemLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+ 	NPC(NPCLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+ 	NPC_CLASS(NPCClassLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	QUEST(QuestLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	STRUCTURE(StructureLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	REGION(RegionLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager())),
+	FLOOR(FloorLoader.getInstance(Dragons.getInstance(), Dragons.getInstance().getPersistentStorageManager()));
 
 	private GameObjectLoader<?> loader;
 	

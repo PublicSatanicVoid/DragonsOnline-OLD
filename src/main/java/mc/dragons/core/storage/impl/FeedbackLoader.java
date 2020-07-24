@@ -5,13 +5,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bson.Document;
-import org.bson.UuidRepresentation;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -44,13 +39,7 @@ public class FeedbackLoader {
 	private static MongoCollection<Document> feedbackCollection;
 	
 	static {
-		ConnectionString connectionString = new ConnectionString("mongodb://" + MongoConfig.USER + ":" + MongoConfig.PASSWORD + "@" + MongoConfig.HOST + ":" + MongoConfig.PORT + "/?authSource=" + MongoConfig.AUTH_DB);
-		MongoClientSettings settings = MongoClientSettings.builder()
-				.applyConnectionString(connectionString)
-				.uuidRepresentation(UuidRepresentation.STANDARD)
-				.build();
-		MongoClient client = MongoClients.create(settings);
-		database = client.getDatabase(MongoConfig.DATABASE);
+		database = MongoConfig.getDatabase();
 		feedbackCollection = database.getCollection(MongoConfig.FEEDBACK_COLLECTION);
 	}
 	

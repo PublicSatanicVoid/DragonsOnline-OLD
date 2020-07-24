@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -31,9 +32,12 @@ public class PlayerPickupItemListener implements Listener {
 	}
 	
 	@EventHandler
-	public void onPlayerPickupItem(PlayerPickupItemEvent event) {
-		ItemStack pickup = event.getItem().getItemStack();		
-		User user = UserLoader.fromPlayer(event.getPlayer());
+	public void onPlayerPickupItem(EntityPickupItemEvent event) {
+		if(!(event.getEntity() instanceof Player)) return;
+		Player player = (Player) event.getEntity();
+		
+		ItemStack pickup = event.getItem().getItemStack();	
+		User user = UserLoader.fromPlayer(player);
 		
 		if(pickup == null) return;
 		if(pickup.getItemMeta() == null) return;
@@ -41,7 +45,7 @@ public class PlayerPickupItemListener implements Listener {
 		
 		Item item = ItemLoader.fromBukkit(pickup);
 		
-		LOGGER.finer("Pickup item event on " + event.getPlayer().getName() + " of " + (item == null ? "null" : item.getIdentifier()));
+		LOGGER.finer("Pickup item event on " + player.getName() + " of " + (item == null ? "null" : item.getIdentifier()));
 		
 		if(item == null) return;
 		
@@ -51,14 +55,14 @@ public class PlayerPickupItemListener implements Listener {
 			new BukkitRunnable() {
 				@Override
 				public void run() {
-					Arrays.asList(event.getPlayer().getInventory().getContents())
+					Arrays.asList(player.getInventory().getContents())
 						.stream()
 						.filter(i -> i != null)
 						.filter(i -> i.getItemMeta() != null)
 						.filter(i -> i.getItemMeta().getDisplayName() != null)
 						.filter(i -> i.getItemMeta().getDisplayName().equals(GOLD_CURRENCY_DISPLAY_NAME))
 						.forEach(i -> {
-							event.getPlayer().getInventory().remove(i);
+							player.getInventory().remove(i);
 							plugin.getGameObjectRegistry().removeFromDatabase(item);
 						});
 				}

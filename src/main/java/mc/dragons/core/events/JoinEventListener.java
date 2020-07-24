@@ -55,10 +55,12 @@ public class JoinEventListener implements Listener {
 		UUID uuid = player.getUniqueId();
 		User user = userLoader.loadObject(uuid);
 		event.setJoinMessage(null);
+		boolean firstJoin = false;
 		if(user == null) {
+			firstJoin = true;
 			plugin.getLogger().info("Player " + player.getName() + " joined for the first time");
 			user = userLoader.registerNew(player);
-			user.sendToFloor("UndeadForest");
+			user.sendToFloor("BeginnerTown");
 			for(ItemClass itemClass : defaultInventory) {
 				user.giveItem(itemLoader.registerNew(itemClass), true, false, true);
 			}
@@ -71,7 +73,7 @@ public class JoinEventListener implements Listener {
 			return;
 		}
 		
-		user.handleJoin();
+		user.handleJoin(firstJoin);
 		player.setGameMode(GameMode.ADVENTURE);
 	}
 }

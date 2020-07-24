@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.bson.Document;
 
+import mc.dragons.core.gameobject.quest.QuestAction.QuestActionResult;
 import mc.dragons.core.gameobject.user.User;
 
 public class QuestStep {
@@ -114,12 +115,13 @@ public class QuestStep {
 		for(int i = beginIndex; i < actions.size(); i++) {
 			QuestAction action = actions.get(i);
 			user.debug("   - Action type " + action.getActionType());
-			if(action.execute(user)) { // quest stage was modified
+			QuestActionResult result = action.execute(user);
+			if(result.wasStageModified()) {
 				shouldUpdateStage = false;
 			}
 			user.updateQuestAction(quest, i + 1);
-			if(user.hasActiveDialogue()) {
-				user.debug("   - Paused action execution after index " + i + " due to dialogue in progress");
+			if(result.shouldPause()) {
+				user.debug("   - Paused action execution after index " + i + "");
 				shouldUpdateStage = false;
 				final int resumeIndex = i + 1;
 				user.onDialogueComplete(u -> executeActions(u, resumeIndex));

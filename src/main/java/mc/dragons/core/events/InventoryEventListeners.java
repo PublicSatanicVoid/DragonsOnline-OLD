@@ -6,6 +6,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
 import mc.dragons.core.gameobject.GameObjectType;
@@ -20,6 +22,13 @@ public class InventoryEventListeners implements Listener {
 	
 	public InventoryEventListeners() {
 		itemLoader = (ItemLoader) GameObjectType.ITEM.<Item>getLoader();
+	}
+	
+	@EventHandler
+	public void onInventoryOpen(InventoryOpenEvent e) {
+		if(e.getInventory().getType() == InventoryType.MERCHANT) {
+			e.setCancelled(true);
+		}
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -43,18 +52,18 @@ public class InventoryEventListeners implements Listener {
 				return;
 			}
 			if(rpgMergeWith.getClassName().contentEquals(rpgMergeFrom.getClassName()) && !rpgMergeWith.isCustom() && !rpgMergeFrom.isCustom()) {
+				int maxStackSize = rpgMergeWith.getMaxStackSize();
 				user.debug("- Merge allowed");
 				int quantity = rpgMergeWith.getItemStack().getAmount() + rpgMergeFrom.getItemStack().getAmount();
-				if(quantity > 64) {
-					rpgMergeFrom.setQuantity(quantity - 64);
+				if(quantity > maxStackSize) {
+					rpgMergeFrom.setQuantity(quantity - maxStackSize);
 					e.setCursor(rpgMergeFrom.getItemStack());
 				}
 				else {
-					user.takeItem(rpgMergeFrom, rpgMergeFrom.getQuantity(), true, false);
-					//e.getCursor().addUnsafeEnchantment(Enchantment.DAMAGE_ALL, 1);
+					user.takeItem(rpgMergeFrom, rpgMergeFrom.getQuantity(), true, false, false);
 					e.setCursor(null);
 				}
-				rpgMergeWith.setQuantity(Math.min(quantity, 64));
+				rpgMergeWith.setQuantity(Math.min(quantity, maxStackSize));
 				e.setCurrentItem(rpgMergeWith.getItemStack());
 				user.debug("- Merge complete (total quantity=" + quantity + ")");
 			}

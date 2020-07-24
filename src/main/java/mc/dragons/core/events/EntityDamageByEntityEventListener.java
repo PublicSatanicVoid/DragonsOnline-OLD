@@ -21,6 +21,7 @@ import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
+import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
 import mc.dragons.core.gameobject.region.Region;
 import mc.dragons.core.gameobject.user.SkillType;
@@ -64,6 +65,15 @@ public class EntityDamageByEntityEventListener implements Listener {
 			npcDamager = NPCLoader.fromBukkit(damager);
 		}
 		
+		if(npcDamager != null) {
+			if(npcDamager.getNPCType() != NPCType.HOSTILE) {
+				event.setCancelled(true);
+				return;
+			}
+		}
+		
+
+		
 		Entity target = event.getEntity();
 		User userTarget = null;
 		NPC npcTarget = null;
@@ -76,7 +86,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 				if(npcTarget.isImmortal()) {
 					event.setCancelled(true);
 					if(userDamager != null) {
-						Item item = ItemLoader.fromBukkit(userDamager.getPlayer().getItemInHand());
+						Item item = ItemLoader.fromBukkit(userDamager.getPlayer().getInventory().getItemInMainHand());
 						if(item != null) {
 							if(item.getClassName().equals("Special:ImmortalOverride")) {
 								npcTarget.getEntity().remove();
@@ -89,6 +99,21 @@ public class EntityDamageByEntityEventListener implements Listener {
 					npcTarget.updateHealthBar();
 					return;
 				}
+			}
+		}
+		
+		if(userDamager != null && npcTarget != null) {
+			if(userDamager.hasActiveDialogue()) {
+				userDamager.sendActionBar(ChatColor.GRAY + "PVE is disabled during quest dialogue!");
+				event.setCancelled(true);
+				return;
+			}
+		}
+		
+		if(npcDamager != null && userTarget != null) {
+			if(userTarget.hasActiveDialogue()) {
+				event.setCancelled(true);
+				return;
 			}
 		}
 		
@@ -124,9 +149,10 @@ public class EntityDamageByEntityEventListener implements Listener {
 		// Handle damage adders
 		//
 
-		Set<Region> regions = regionLoader.getRegionsByLocationXZ(target.getLocation());
+		Set<Region> regions = regionLoader.getRegionsByLocation(target.getLocation());
 		
-		if(userDamager == null) { // NPC damager, user target
+		if(userTarget != null) {
+			userTarget.debug("user target");
 			for(Region region : regions) {
 				if(!Boolean.valueOf(region.getFlags().getString("pve"))) {
 					userTarget.debug("- Cancelled damage due to a region " + region.getName() + " PVE flag = false");
@@ -134,12 +160,15 @@ public class EntityDamageByEntityEventListener implements Listener {
 					return;
 				}
 			}
+		}
+		
+		if(npcDamager != null) { // NPC damager, user target
 			double weightedLevelDiscrepancy = Math.max(0, npcDamager.getLevel() - 0.5 * userTarget.getLevel());
 			damage += event.getDamage() * (0.25 * weightedLevelDiscrepancy + 1);
 		}
 		else { // User damager
 			
-			Item attackerHeldItem = ItemLoader.fromBukkit(userDamager.getPlayer().getInventory().getItemInHand());
+			Item attackerHeldItem = ItemLoader.fromBukkit(userDamager.getPlayer().getInventory().getItemInMainHand());
 			double itemDamage = 0.5;
 			if(attackerHeldItem != null) {
 				if(attackerHeldItem.hasCooldownRemaining()) {
@@ -154,7 +183,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 				new BukkitRunnable() {
 					@Override
 					public void run() {
-						Item currentHeldItem = ItemLoader.fromBukkit(fUserDamager.getPlayer().getItemInHand());
+						Item currentHeldItem = ItemLoader.fromBukkit(fUserDamager.getPlayer().getInventory().getItemInMainHand());
 						if(currentHeldItem == null) return;
 						if(!currentHeldItem.equals(attackerHeldItem)) return;
 						//fUserDamager.sendActionBar(heldItem.getDecoratedName() + " " + ProgressBarUtil.getCountdownBar(heldItem.getCooldownRemaining() / heldItem.getCooldown()));
@@ -164,11 +193,11 @@ public class EntityDamageByEntityEventListener implements Listener {
 						//meta.setDisplayName(attackerHeldItem.getDecoratedName() + ChatColor.DARK_GRAY + " [" + ProgressBarUtil.getCountdownBar(percentRemaining) + ChatColor.DARK_GRAY + "]");
 						//attackerHeldItem.getItemStack().setItemMeta(meta);
 						String cooldownName = attackerHeldItem.getDecoratedName() + ChatColor.DARK_GRAY + " [" + ProgressBarUtil.getCountdownBar(percentRemaining) + ChatColor.DARK_GRAY + "]";
-						fUserDamager.getPlayer().setItemInHand(attackerHeldItem.localRename(cooldownName));
+						fUserDamager.getPlayer().getInventory().setItemInMainHand(attackerHeldItem.localRename(cooldownName));
 						if(!attackerHeldItem.hasCooldownRemaining()) {
 							//fUserDamager.sendActionBar(heldItem.getDecoratedName() + ChatColor.GREEN + " RECHARGED");
 							//attackerHeldItem.getItemStack().getItemMeta().setDisplayName(attackerHeldItem.getDecoratedName());
-							fUserDamager.getPlayer().setItemInHand(attackerHeldItem.localRename(attackerHeldItem.getDecoratedName()));
+							fUserDamager.getPlayer().getInventory().setItemInMainHand(attackerHeldItem.localRename(attackerHeldItem.getDecoratedName()));
 							this.cancel();
 						}
 						//ItemStack after = fUserDamager.p().getItemInHand();
@@ -215,7 +244,7 @@ public class EntityDamageByEntityEventListener implements Listener {
 			double randomDefense = Math.random() * userTarget.getSkillLevel(SkillType.DEFENSE);
 			damage -= randomDefense;
 			
-			Item targetHeldItem = ItemLoader.fromBukkit(userTarget.getPlayer().getInventory().getItemInHand());
+			Item targetHeldItem = ItemLoader.fromBukkit(userTarget.getPlayer().getInventory().getItemInMainHand());
 			double itemDefense = 0.0;
 			if(targetHeldItem != null) {
 				itemDefense = targetHeldItem.getArmor();
@@ -236,10 +265,15 @@ public class EntityDamageByEntityEventListener implements Listener {
 		event.setDamage(damage);
 		
 		if(npcTarget != null) {
+			npcTarget.getNPCClass().handleTakeDamage(npcTarget, npcDamager != null ? npcDamager : userDamager, damage);
 			npcTarget.updateHealthBar(damage);
 			if(userDamager != null) {
-				npcTarget.getNPCClass().executeConditionals(NPCTrigger.HIT, userDamager);
+				npcTarget.getNPCClass().executeConditionals(NPCTrigger.HIT, userDamager, npcTarget);
 			}
+		}
+		
+		if(npcDamager != null) {
+			npcDamager.getNPCClass().handleDealDamage(npcDamager, npcTarget != null ? npcTarget : userTarget, damage);
 		}
 	}
 }

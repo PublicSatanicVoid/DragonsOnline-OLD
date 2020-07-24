@@ -3,6 +3,7 @@ package mc.dragons.core.gameobject.npc;
 import java.util.List;
 
 import org.bson.Document;
+import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import mc.dragons.core.Dragons;
@@ -11,11 +12,15 @@ import mc.dragons.core.gameobject.loader.NPCClassLoader;
 import mc.dragons.core.gameobject.loader.QuestLoader;
 import mc.dragons.core.gameobject.quest.Quest;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.storage.StorageUtil;
+import mc.dragons.core.util.PathfindingUtil;
 
 public class NPCAction {
 	public enum NPCActionType {
 		BEGIN_QUEST,
-		BEGIN_DIALOGUE
+		BEGIN_DIALOGUE,
+		TELEPORT_NPC,
+		PATHFIND_NPC
 	};
 	
 	private static NPCClassLoader npcClassLoader;
@@ -25,6 +30,7 @@ public class NPCAction {
 	private NPCClass npcClass;
 	private Quest quest;
 	private List<String> dialogue;
+	private Location to;
 	
 	private NPCAction() {}
 	
@@ -40,6 +46,10 @@ public class NPCAction {
 			return beginQuest(npcClass, questLoader.getQuestByName(document.getString("quest")));
 		case BEGIN_DIALOGUE:
 			return beginDialogue(npcClass, document.getList("dialogue", String.class));
+		case TELEPORT_NPC:
+			return teleportNPC(npcClass, StorageUtil.docToLoc(document.get("to", Document.class)));
+		case PATHFIND_NPC:
+			return pathfindNPC(npcClass, StorageUtil.docToLoc(document.get("to", Document.class)));
 		}
 		
 		return null;
@@ -61,6 +71,22 @@ public class NPCAction {
 		return action;
 	}
 	
+	public static NPCAction teleportNPC(NPCClass npcClass, Location to) {
+		NPCAction action = new NPCAction();
+		action.type = NPCActionType.TELEPORT_NPC;
+		action.npcClass = npcClass;
+		action.to = to;
+		return action;
+	}
+	
+	public static NPCAction pathfindNPC(NPCClass npcClass, Location to) {
+		NPCAction action = new NPCAction();
+		action.type = NPCActionType.PATHFIND_NPC;
+		action.npcClass = npcClass;
+		action.to = to;
+		return action;
+	}
+	
 	public NPCActionType getType() {
 		return type;
 	}
@@ -77,6 +103,10 @@ public class NPCAction {
 		return dialogue;
 	}
 	
+	public Location getTo() {
+		return to;
+	}
+	
 	public Document toDocument() {
 		Document result = new Document("type", type.toString());
 		
@@ -87,12 +117,16 @@ public class NPCAction {
 		case BEGIN_DIALOGUE:
 			result.append("dialogue", dialogue);
 			break;
+		case TELEPORT_NPC:
+		case PATHFIND_NPC:
+			result.append("to", StorageUtil.locToDoc(to));
+			break;
 		}
 		
 		return result;
 	}
 	
-	public void execute(User user) {
+	public void execute(User user, NPC npc) {
 		switch(type) {
 		case BEGIN_QUEST:
 			user.updateQuestProgress(quest, quest.getSteps().get(0));
@@ -110,6 +144,11 @@ public class NPCAction {
 //				user.getPlayer().sendMessage(ChatColor.DARK_GREEN + "[" + npcClass.getName() + "] " + ChatColor.GREEN + line);
 //			}
 			break;
+		case TELEPORT_NPC:
+			npc.getEntity().teleport(to);
+			break;
+		case PATHFIND_NPC:
+			PathfindingUtil.walkToLocation(npc.getEntity(), to, 0.15, null);
 		}
 	}
 }

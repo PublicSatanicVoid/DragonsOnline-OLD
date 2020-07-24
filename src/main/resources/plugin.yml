@@ -4,9 +4,11 @@ version: 1.0.0
 author: DragonRider747
 depend: [ProtocolLib]
 loadbefore: [WorldEdit]
+load: POSTWORLD
 commands:
-  clear:
-    description: Clear your inventory. This cannot be undone.
+  channel:
+    description: Set speaking and listening chat channels.
+    aliases: [c, ch, chat]
   dragons:
     description: DRAGONS
   fastforwarddialogue:
@@ -14,24 +16,30 @@ commands:
   feedback:
     description: Send feedback about the game.
   friend:
-    description: Add, accept, and manage friends.
+    description: Make friends!
+    aliases: f
+  help:
+    description: Halp
+    aliases: '?'
   ilostthelousystick:
+  msg:
+    description: Send a private message.
+    aliases: [tell, t, m, pm, whisper, w]
   myquests:
     description: List your active quests.
   party:
     description: Create, join, and manage parties.
     aliases: p
-  friend:
-    description: Make friends!
-    aliases: f
-  relore:
-    description: Change the lore of your held item. Requires blacksmithing level 40+ and costs 100 Gold per use. (Bypassed by MOD permission level)
-  rename:
-    description: Rename your held item. Requires blacksmithing level 20+ and costs 50 Gold per use. (Bypassed by MOD permission level)
-  syslogon:
     description: Log on to system console.
+  reply:
+    description: Reply to your last incoming message.
+    aliases: [r, re]
+  syslogon:
+    description: Log on to the system console.
   bypassdeathcountdown:
     description: (TESTER) Skip the death countdown and respawn instantly.
+  clear:
+    description: (TESTER) Clear your inventory. This cannot be undone.
   testquest:
     description: (TESTER) Force-begin a quest.
   gamemode:
@@ -40,13 +48,17 @@ commands:
   gma:
     description: (BUILDER) Set gamemode to Adventure.
   gmc:
-    description: (BUILDER) Set gamemode to Creative.
+    description: (BUILDER+B) Set gamemode to Creative.
   gms:
-    description: (BUILDER) Set gamemode to Survival.
+    description: (BUILDER+B) Set gamemode to Survival.
   gotofloor:
     description: (BUILDER) Go to the specified floor, overriding level requirements.
+  speed:
+    description: (BUILDER) Change your ground or flight speed.
   ban:
     description: (MOD) Ban a player.
+  chatspy:
+    description: (MOD) View other players' private messages.
   godmode:
     description: (MOD) Toggle God Mode.
     aliases: god
@@ -56,6 +68,9 @@ commands:
     description: (MOD) Kick a player.
   mute:
     description: (MOD) Mute a player.
+  shout:
+    description: (MOD) Broadcast to the entire server.
+    aliases: [broadcast, bc]
   unban:
     description: (MOD) Unban a player.
   unmute:
@@ -68,6 +83,8 @@ commands:
     aliases: v
   viewpunishments:
     description: (MOD) View a player's punishment history.
+  addon:
+    description: (GM) Manage add-ons.
   floor:
     description: (GM) Manage floors.
   item:
@@ -75,12 +92,18 @@ commands:
     aliases: i
   npc:
     description: (GM) Manage NPCs.
+  placeholder:
+    description: (GM) Set text placeholders for longer dialogue, etc.
+    aliases: ph
   quest:
     description: (GM) Manage quests.
     aliases: q
   region:
     description: (GM) Manage regions.
-    aliases: r
+  relore:
+    description: (GM) Change the lore of your held item.
+  rename:
+    description: (GM) Rename your held item.
   restat:
     description: (GM) Change the stats of your held item.
   updatestats:

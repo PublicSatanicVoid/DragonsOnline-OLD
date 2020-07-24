@@ -27,7 +27,7 @@ import mc.dragons.core.storage.StorageManager;
  *
  */
 public abstract class GameObject {
-	protected Logger LOGGER = Dragons.getInstance().getLogger();
+	protected static Logger LOGGER = Dragons.getInstance().getLogger();
 	
 	protected StorageManager storageManager;
 	protected StorageAccess storageAccess;

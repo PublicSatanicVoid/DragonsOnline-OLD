@@ -1,29 +1,7 @@
 package mc.dragons.core.bridge.impl;
 
-import java.util.logging.Logger;
-
-import org.bukkit.ChatColor;
-import org.bukkit.craftbukkit.v1_8_R3.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-
-import io.github.bananapuncher714.nbteditor.NBTEditor;
-import mc.dragons.core.Dragons;
-import mc.dragons.core.bridge.Bridge;
-import mc.dragons.core.util.StringUtil;
-import net.minecraft.server.v1_8_R3.AxisAlignedBB;
-import net.minecraft.server.v1_8_R3.ChatComponentText;
-import net.minecraft.server.v1_8_R3.IChatBaseComponent.ChatSerializer;
-import net.minecraft.server.v1_8_R3.PacketPlayInClientCommand;
-import net.minecraft.server.v1_8_R3.PacketPlayInClientCommand.EnumClientCommand;
-import net.minecraft.server.v1_8_R3.PacketPlayOutChat;
-import net.minecraft.server.v1_8_R3.PacketPlayOutTitle;
-import net.minecraft.server.v1_8_R3.PacketPlayOutTitle.EnumTitleAction;
-
-public class Bridge_Spigot1_8_R3 implements Bridge {
-
+public class Bridge_Spigot1_8_R3 /*implements Bridge*/ {
+/*
 	private Logger LOGGER = Dragons.getInstance().getLogger();
 	
 	@Override
@@ -80,5 +58,5 @@ public class Bridge_Spigot1_8_R3 implements Bridge {
 		NBTEditor.set(entity, (byte) (immortal ? 1 : 0), "Invulnerable");
 		LOGGER.finest("Set Invulnerability on entity " + StringUtil.entityToString(entity) + " to " + immortal);
 	}
-
+*/
 }

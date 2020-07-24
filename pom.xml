@@ -63,8 +63,8 @@
 			<layout>default</layout>
 		</repository>
 		<repository>
-			<id>destroystokyo-releases</id>
-			<url>https://repo.destroystokyo.com/repository/maven-releases/</url>
+		    <id>papermc</id>
+		    <url>https://papermc.io/repo/repository/maven-public/</url>
 		</repository>
    </repositories>
 
@@ -83,14 +83,14 @@
      <dependency>
      	<groupId>org.spigotmc</groupId>
      	<artifactId>spigot-api</artifactId>
-     	<version>1.8-R0.1-SNAPSHOT</version>
+     	<version>1.12.2-R0.1-SNAPSHOT</version>
     	<type>jar</type>
      	<scope>provided</scope>
      </dependency>
      <dependency>
         <groupId>org.bukkit</groupId>
         <artifactId>craftbukkit</artifactId>
-        <version>1.8.8-R0.1-SNAPSHOT</version><!--change this value depending on the version-->
+        <version>1.12.2-R0.1-SNAPSHOT</version>
         <type>jar</type>
         <scope>provided</scope>
      </dependency>
@@ -105,6 +105,17 @@
 	    <artifactId>NBTEditor</artifactId>
 	    <version>7.16</version>
 	  </dependency> 
+	  <dependency>
+    	<groupId>org.apache.commons</groupId>
+    	<artifactId>commons-collections4</artifactId>
+    	<version>4.4</version>
+	  </dependency>
+	  <dependency>
+        <groupId>com.destroystokyo.paper</groupId>
+        <artifactId>paper-api</artifactId>
+        <version>1.12.2-R0.1-SNAPSHOT</version>
+        <scope>provided</scope>
+      </dependency>
 	  <!-- <dependency>
 	    <groupId>io.papermc</groupId>
 		<artifactId>paperlib</artifactId>

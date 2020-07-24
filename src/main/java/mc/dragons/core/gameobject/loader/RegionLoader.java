@@ -67,7 +67,6 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		return worldToRegions.getOrDefault(worldName, new HashSet<>());
 	}
 	
-	@Deprecated
 	public Set<Region> getRegionsByLocation(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
@@ -79,6 +78,7 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		return result;
 	}
 	
+	@Deprecated
 	public Set<Region> getRegionsByLocationXZ(Location loc) {
 		lazyLoadAll();
 		Set<Region> result = new HashSet<>();
@@ -103,7 +103,8 @@ public class RegionLoader extends GameObjectLoader<Region> {
 		storageAccess.set("corner1", StorageUtil.vecToDoc(corner1.toVector()));
 		storageAccess.set("corner2", StorageUtil.vecToDoc(corner2.toVector()));
 		storageAccess.set("flags", new Document("fullname", "New Region").append("desc", "").append("lvmin", "0").append("lvrec", "0").append("showtitle", "false")
-				.append("allowhostile", "true").append("pvp", "true").append("pve", "true"));
+				.append("allowhostile", "true").append("pvp", "true").append("pve", "true").append("hidden", "false").append("spawncap", "-1").append("nospawn", "false")
+				.append("3d", "false"));
 		storageAccess.set("spawnRates", new Document());
 		Region region = new Region(storageManager, storageAccess);
 		masterRegistry.getRegisteredObjects().add(region);

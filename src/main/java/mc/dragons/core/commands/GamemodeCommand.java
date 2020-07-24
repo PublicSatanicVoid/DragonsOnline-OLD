@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.util.PermissionUtil;
 
 public class GamemodeCommand implements CommandExecutor {
@@ -69,6 +70,13 @@ public class GamemodeCommand implements CommandExecutor {
 				break;
 			default:
 				sender.sendMessage(ChatColor.RED + "Invalid gamemode! /" + label + " <adventure|creative|survival|spectator>" + (hasModPermission ? " [player]" : ""));
+				return true;
+			}
+		}
+		
+		if(gameMode == GameMode.CREATIVE || gameMode == GameMode.SURVIVAL) {
+			if(!user.getSystemProfile().getFlags().hasFlag(SystemProfileFlag.BUILD)) {
+				sender.sendMessage(ChatColor.RED + "Creative and survival gamemodes require build permissions.");
 				return true;
 			}
 		}

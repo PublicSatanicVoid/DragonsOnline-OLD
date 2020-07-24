@@ -5,9 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Logger;
 
 import org.bson.Document;
 
+import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.user.User;
 
 /**
@@ -27,12 +29,18 @@ import mc.dragons.core.gameobject.user.User;
  *
  */
 public class NPCConditionalActions {
+	private static Logger LOGGER = Dragons.getInstance().getLogger();
+	
 	public enum NPCTrigger {
-		HIT /** Attacking an NPC of this class */,
-		CLICK /** Right-clicking an NPC of this class */
+		 /** Attacking an NPC of this class */
+		HIT,
+		
+		/** Right-clicking an NPC of this class */
+		CLICK
 	};
 	
 	public NPCConditionalActions(NPCTrigger trigger, NPCClass npcClass) {
+		LOGGER.fine("Constructing conditional actions for " + npcClass.getClassName() + " with trigger " + trigger);
 		this.trigger = trigger;
 		this.npcClass = npcClass;
 		this.conditionals = new LinkedHashMap<>();
@@ -40,6 +48,7 @@ public class NPCConditionalActions {
 		for(Document conditional : npcClass.getStorageAccess().getDocument()
 				.get("conditionals", Document.class)
 				.getList(trigger.toString(), Document.class)) {
+			LOGGER.fine("- Found an action set");
 			List<Document> conditions = conditional.getList("conditions", Document.class);
 			List<Document> actions = conditional.getList("actions", Document.class);
 			
@@ -47,10 +56,12 @@ public class NPCConditionalActions {
 			List<NPCAction> parsedActions = new ArrayList<>();
 			
 			for(Document condition : conditions) {
+				LOGGER.fine("  - Found a condition: " + condition.toJson());
 				parsedConditions.add(NPCCondition.fromDocument(condition));
 			}
 			
 			for(Document action : actions) {
+				LOGGER.fine("  - Found an action: " + action.toJson());
 				parsedActions.add(NPCAction.fromDocument(npcClass, action));
 			}
 			
@@ -74,7 +85,7 @@ public class NPCConditionalActions {
 		return conditionals;
 	}
 	
-	public void executeConditionals(User user) {
+	public void executeConditionals(User user, NPC npc) {
 		user.debug("Executing conditional actions");
 		for(Entry<List<NPCCondition>, List<NPCAction>> entry : conditionals.entrySet()) {
 			boolean meetsConditions = true;
@@ -88,7 +99,7 @@ public class NPCConditionalActions {
 			if(meetsConditions) {
 				user.debug("- MEETS ALL CONDITIONS, executing actions");
 				for(NPCAction action : entry.getValue()) {
-					action.execute(user);
+					action.execute(user, npc);
 				}
 			}
 		}

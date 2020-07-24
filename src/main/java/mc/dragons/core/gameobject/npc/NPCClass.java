@@ -1,8 +1,14 @@
 package mc.dragons.core.gameobject.npc;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.bson.Document;
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 
+import mc.dragons.addons.npc.NPCAddon;
+import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObject;
 import mc.dragons.core.gameobject.npc.NPC.NPCType;
 import mc.dragons.core.gameobject.npc.NPCConditionalActions.NPCTrigger;
@@ -15,6 +21,9 @@ public class NPCClass extends GameObject {
 	private LootTable lootTable;
 	private NPCConditionalActions[] conditionals = new NPCConditionalActions[NPCTrigger.values().length];
 	
+	private List<NPCAddon> addons;
+	
+	@SuppressWarnings("unchecked")
 	public NPCClass(StorageManager storageManager, StorageAccess storageAccess) {
 		super(storageManager, storageAccess);
 		LOGGER.fine("Constructing NPC Class (" + storageManager + ", " + storageAccess + ")");
@@ -24,13 +33,51 @@ public class NPCClass extends GameObject {
 			conditionals[i] = new NPCConditionalActions(trigger, this);
 			i++;
 		}
+		addons = ((List<String>) getData("addons"))
+				.stream()
+				.map(addonName -> (NPCAddon) Dragons.getInstance().getAddonRegistry().getAddonByName(addonName))
+				.collect(Collectors.toList());
 	}
 	
-	public void executeConditionals(NPCTrigger trigger, User user) {
+	private void saveAddons() {
+		setData("addons", addons.stream().map(a -> a.getName()).collect(Collectors.toList()));
+	}
+	
+	public void addAddon(NPCAddon addon) {
+		addons.add(addon);
+		saveAddons();
+	}
+	
+	public void removeAddon(NPCAddon addon) {
+		addons.remove(addon);
+		saveAddons();
+	}
+	
+	public List<NPCAddon> getAddons() {
+		return addons;
+	}
+	
+	public void handleMove(NPC npc, Location loc) {
+		addons.forEach(addon -> addon.onMove(npc, loc));
+	}
+	
+	public void handleTakeDamage(NPC on, GameObject from, double amt) {
+		addons.forEach(addon -> addon.onTakeDamage(on, from, amt));
+	}
+	
+	public void handleDealDamage(NPC from, GameObject to, double amt) {
+		addons.forEach(addon -> addon.onDealDamage(from, to, amt));
+	}
+	
+	public void handleDeath(NPC npc) {
+		addons.forEach(addon -> addon.onDeath(npc));
+	}
+	
+	public void executeConditionals(NPCTrigger trigger, User user, NPC npc) {
 		user.debug("Executing conditionals");
 		for(NPCConditionalActions conditionalAction : conditionals) {
 			if(conditionalAction.getTrigger() == trigger) {
-				conditionalAction.executeConditionals(user);
+				conditionalAction.executeConditionals(user, npc);
 			}
 		}
 	}

@@ -2,11 +2,18 @@ package mc.dragons.core.util;
 
 import static mc.dragons.core.util.MathUtil.round;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.util.Vector;
 
 public class StringUtil {
@@ -113,5 +120,43 @@ public class StringUtil {
 			}
 		}
 		return timespanSeconds;
+	}
+	
+	public static <T> String parseList(List<T> list) {
+		return parseList(list, ", ");
+	}
+	
+	public static <T> String parseList(List<T> list, String separator) {
+		return list.stream().map(elem -> elem.toString()).collect(Collectors.joining(separator));
+	}
+	
+	public static <T> String parseList(T[] array) {
+		return parseList(array, ", ");
+	}
+	
+	public static <T> String parseList(T[] array, String separator) {
+		return parseList(Arrays.asList(array), separator);
+	}
+	
+	public static Material parseMaterialType(CommandSender sender, String str) {
+		Material type = null;
+		try {
+			type = Material.valueOf(str.toUpperCase());
+		}
+		catch(Exception e) {
+			sender.sendMessage(ChatColor.RED + "Invalid material type! For a full list, see " + ChatColor.UNDERLINE + "https://papermc.io/javadocs/paper/1.12/org/bukkit/Material.html");
+		}
+		return type;
+	}
+	
+	public static EntityType parseEntityType(CommandSender sender, String str) {
+		EntityType type = null;
+		try {
+			type = EntityType.valueOf(str.toUpperCase());
+		}
+		catch(Exception e) {
+			sender.sendMessage(ChatColor.RED + "Invalid entity type! For a full list, see " + ChatColor.UNDERLINE + "https://papermc.io/javadocs/paper/1.12/org/bukkit/entity/EntityType.html");
+		}
+		return type;
 	}
 }

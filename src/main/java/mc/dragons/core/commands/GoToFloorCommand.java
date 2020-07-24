@@ -58,7 +58,7 @@ public class GoToFloorCommand implements CommandExecutor {
 		
 		Floor floor = FloorLoader.fromFloorName(args[0]);
 		if(floor == null) {
-			sender.sendMessage(ChatColor.RED + "That floor does not exist!");
+			sender.sendMessage(ChatColor.RED + "That floor does not exist! To list floors, do /gotofloor -listfloors");
 			return true;
 		}
 		

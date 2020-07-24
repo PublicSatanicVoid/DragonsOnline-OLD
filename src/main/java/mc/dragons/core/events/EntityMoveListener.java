@@ -12,6 +12,7 @@ import com.comphenix.protocol.events.PacketEvent;
 
 import mc.dragons.core.Dragons;
 import mc.dragons.core.gameobject.GameObjectType;
+import mc.dragons.core.gameobject.loader.NPCLoader;
 import mc.dragons.core.gameobject.loader.RegionLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
 import mc.dragons.core.gameobject.npc.NPC;
@@ -35,12 +36,11 @@ public class EntityMoveListener extends PacketAdapter {
 	public void onPacketSending(PacketEvent event) {
 		Entity entity = event.getPacket().getEntityModifier(event.getPlayer().getWorld()).read(0);
 		LOGGER.finest("Entity move on " + StringUtil.entityToString(entity));
-		if(!entity.hasMetadata("handle")) {
-			return;
-		}
-		NPC npc = (NPC) entity.getMetadata("handle").get(0).value();
+		NPC npc = NPCLoader.fromBukkit(entity);
+		if(npc == null) return;
+		npc.getNPCClass().handleMove(npc, entity.getLocation());
 		if(npc.getNPCType() == NPCType.HOSTILE) {
-			Set<Region> regions = regionLoader.getRegionsByLocationXZ(entity.getLocation());
+			Set<Region> regions = regionLoader.getRegionsByLocation(entity.getLocation());
 			for(Region region : regions) {
 				if(!Boolean.valueOf(region.getFlags().getString("allowhostile"))) {
 					npc.remove();

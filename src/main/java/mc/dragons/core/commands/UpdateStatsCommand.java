@@ -1,9 +1,7 @@
 package mc.dragons.core.commands;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -15,6 +13,7 @@ import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.SkillType;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.util.PermissionUtil;
+import mc.dragons.core.util.StringUtil;
 
 public class UpdateStatsCommand implements CommandExecutor {
 
@@ -38,7 +37,7 @@ public class UpdateStatsCommand implements CommandExecutor {
 		
 		if(args.length < 3) {
 			sender.sendMessage(ChatColor.RED + "Specify a player! /updatestats <Player> <StatName> <Value>");
-			sender.sendMessage(ChatColor.RED + "Valid StatNames: xp, gold, health, maxHealth, skill.<SkillType>");
+			sender.sendMessage(ChatColor.RED + "Valid StatNames: xp, level, gold, health, maxHealth, skill.<SkillType>");
 			return true;
 		}
 		
@@ -54,6 +53,9 @@ public class UpdateStatsCommand implements CommandExecutor {
 				target.getPlayer().setHealth(Math.min(target.getPlayer().getHealth(), User.calculateMaxHealth(target.getLevel())));
 			}
 		}
+		if(args[1].equalsIgnoreCase("level")) {
+			target.setXP(User.calculateMaxXP(Integer.valueOf(args[2]) - 1));
+		}
 		else if(args[1].equalsIgnoreCase("gold")) {
 			target.setGold(Double.valueOf(args[2]));
 		}
@@ -64,7 +66,7 @@ public class UpdateStatsCommand implements CommandExecutor {
 			if(target.getPlayer() == null) {
 				sender.sendMessage(ChatColor.RED + "The specified player must be online to set their max health.");
 			}
-			target.getPlayer().setMaxHealth(Double.valueOf(args[2]));
+			target.getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(Double.valueOf(args[2]));
 			sender.sendMessage(ChatColor.YELLOW + "Warning: This change will only persist until the player rejoins.");
 		}
 		else if(args[1].startsWith("skill.")) {
@@ -73,10 +75,7 @@ public class UpdateStatsCommand implements CommandExecutor {
 				SkillType skill = SkillType.valueOf(skillName);
 				user.setSkillProgress(skill, Double.valueOf(args[2]));
 			} catch(Exception e) {
-				sender.sendMessage(ChatColor.RED + "Invalid skill type! Valid skills are: " + Arrays.asList(SkillType.values())
-							.stream()
-							.map(t -> "skill." + t.toString().toLowerCase())
-							.collect(Collectors.joining(", ")));
+				sender.sendMessage(ChatColor.RED + "Invalid skill type! Valid skills are: " + StringUtil.parseList(SkillType.values()));
 				return true;
 			}
 		}

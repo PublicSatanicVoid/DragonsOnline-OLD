@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.bson.Document;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -34,7 +35,7 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 		if(INSTANCE == null) {
 			INSTANCE = new FloorLoader(instance, storageManager);
 			worldNameToFloor = new HashMap<>();
-			floorNameToFloor = new HashMap<>();
+			floorNameToFloor = new CaseInsensitiveMap<>();
 		}
 		return INSTANCE;
 	}
@@ -79,6 +80,10 @@ public class FloorLoader extends GameObjectLoader<Floor> {
 	
 	public static Floor fromFloorName(String floorName) {
 		return floorNameToFloor.get(floorName);
+	}
+	
+	public static void updateFloorName(String floorName, String newFloorName) {
+		floorNameToFloor.put(newFloorName, floorNameToFloor.remove(floorName));
 	}
 	
 	public void loadAll(boolean force) {

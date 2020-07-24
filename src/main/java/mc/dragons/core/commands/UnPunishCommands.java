@@ -8,9 +8,9 @@ import org.bukkit.entity.Player;
 
 import mc.dragons.core.gameobject.GameObjectType;
 import mc.dragons.core.gameobject.loader.UserLoader;
-import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.gameobject.user.User.PunishmentType;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.util.PermissionUtil;
 
 public class UnPunishCommands implements CommandExecutor {
@@ -30,7 +30,8 @@ public class UnPunishCommands implements CommandExecutor {
 		if(sender instanceof Player) {
 			player = (Player) sender;
 			user = UserLoader.fromPlayer(player);
-			if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, true)) return true;
+			//if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.MOD, true)) return true;
+			if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.MODERATION, true)) return true;
 		}
 		
 		if(args.length == 0) {

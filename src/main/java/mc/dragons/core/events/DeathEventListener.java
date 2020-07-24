@@ -35,14 +35,15 @@ public class DeathEventListener implements Listener {
 		final Player player = event.getEntity();
 		final User user = UserLoader.fromPlayer(player);
 		
-		// Respawn the player in 10 seconds, show a customized death message
+		player.sendMessage(ChatColor.DARK_RED + "You died!");
+		
     	int countdown = plugin.getServerOptions().getDeathCountdown();
 		Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
 			public void run() {
             	user.respawn();
-            	user.sendTitle(ChatColor.DARK_RED, "You are dead.", ChatColor.RED, "Respawning on floor 1", 0, 20, 0);
+            	user.sendTitle(ChatColor.DARK_RED, "You are dead.", ChatColor.RED, "Respawning on floor 1", 0, countdown, 0);
             	user.setDeathCountdown(countdown);
-            	user.sendToFloor("UndeadForest");
+            	user.sendToFloor("BeginnerTown");
 			}
 		}, 1L);
 	}

@@ -1,9 +1,9 @@
 package mc.dragons.core.gameobject.npc;
 
-import java.util.UUID;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attributable;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -42,7 +42,8 @@ public class NPC extends GameObject {
 		HOSTILE(ChatColor.RED, "", false, false, true),
 		NEUTRAL(ChatColor.YELLOW, "", false, false, true),
 		QUEST(ChatColor.DARK_GREEN, ChatColor.DARK_GREEN + "[NPC] ", true, true, false),
-		SHOP(ChatColor.DARK_AQUA, ChatColor.DARK_AQUA + "[NPC] ", true, true, false);
+		SHOP(ChatColor.DARK_AQUA, ChatColor.DARK_AQUA + "[NPC] ", true, true, false),
+		PERSISTENT(ChatColor.YELLOW, "", true, true, true);
 		
 		private ChatColor nameColor;
 		private String prefix;
@@ -86,7 +87,8 @@ public class NPC extends GameObject {
 	protected static EntityHider entityHider;
 	
 	public NPC(Entity entity, StorageManager storageManager, StorageAccess storageAccess) {
-		super(GameObjectType.NPC, (UUID) storageAccess.get("_id"), storageManager);
+		//super(GameObjectType.NPC, storageAccess.getIdentifier().getUUID(), storageManager);
+		super(storageManager, storageAccess);
 		LOGGER.fine("Constructing NPC (" + StringUtil.entityToString(entity) + ", " + storageManager + ", " + storageAccess + ")");
 		if(npcClassLoader == null) {
 			npcClassLoader = (NPCClassLoader) GameObjectType.NPC_CLASS.<NPCClass>getLoader();
@@ -109,12 +111,14 @@ public class NPC extends GameObject {
 		initializeEntity();
 		
 		Dragons.getInstance().getBridge().setEntityAI(entity, getNPCClass().hasAI());
-		//Dragons.getInstance().getBridge().setEntityInvulnerable(entity, isImmortal());
+		Dragons.getInstance().getBridge().setEntityInvulnerable(entity, isImmortal());
+
+		getNPCClass().getAddons().forEach(addon -> addon.initialize(this));
 	}
 	
 	public void initializeEntity() {
-		entity.setCustomNameVisible(true);
 		entity.setCustomName(getDecoratedName());
+		entity.setCustomNameVisible(true);
 		entity.setMetadata("handle", new FixedMetadataValue(Dragons.getInstance(), this));
 	}
 	
@@ -125,17 +129,17 @@ public class NPC extends GameObject {
 	}
 
 	public void setMaxHealth(double maxHealth) {
-		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable) entity;
-			damageable.setMaxHealth(maxHealth);
+		if(entity instanceof Attributable) {
+			Attributable attributable = (Attributable) entity;
+			attributable.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
 			setData("maxHealth", maxHealth);
 		}
 	}
 	
 	public double getMaxHealth() {
-		if(entity instanceof Damageable) {
-			Damageable damageable = (Damageable) entity;
-			return damageable.getMaxHealth();
+		if(entity instanceof Attributable) {
+			Attributable attributable = (Attributable) entity;
+			return attributable.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
 		}
 		return 0.0;
 	}
@@ -220,8 +224,10 @@ public class NPC extends GameObject {
 	}
 	
 	public void setEntity(Entity entity) {
+		this.entity.removeMetadata("handle", Dragons.getInstance());
 		LOGGER.finer("Replacing entity backing NPC " + getIdentifier() + ": " + StringUtil.entityToString(this.entity) + " -> " + StringUtil.entityToString(entity));
 		this.entity = entity;
+		this.entity.setMetadata("handle", new FixedMetadataValue(Dragons.getInstance(), this));
 	}
 	
 	public Entity getEntity() {

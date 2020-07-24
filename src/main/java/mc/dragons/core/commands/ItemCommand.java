@@ -20,9 +20,9 @@ import mc.dragons.core.gameobject.loader.GameObjectRegistry;
 import mc.dragons.core.gameobject.loader.ItemClassLoader;
 import mc.dragons.core.gameobject.loader.ItemLoader;
 import mc.dragons.core.gameobject.loader.UserLoader;
-import mc.dragons.core.gameobject.user.PermissionLevel;
 import mc.dragons.core.gameobject.user.User;
 import mc.dragons.core.storage.StorageManager;
+import mc.dragons.core.storage.impl.SystemProfile.SystemProfileFlags.SystemProfileFlag;
 import mc.dragons.core.util.PermissionUtil;
 import mc.dragons.core.util.StringUtil;
 
@@ -38,7 +38,7 @@ public class ItemCommand implements CommandExecutor {
 		itemLoader = (ItemLoader) GameObjectType.ITEM.<Item>getLoader();
 		itemClassLoader = (ItemClassLoader) GameObjectType.ITEM_CLASS.<ItemClass>getLoader();
 		registry = instance.getGameObjectRegistry();
-		storageManager = instance.getStorageManager();
+		storageManager = instance.getPersistentStorageManager();
 	}
 	
 	
@@ -49,7 +49,8 @@ public class ItemCommand implements CommandExecutor {
 		if(sender instanceof Player) {
 			player = (Player) sender;
 			user = UserLoader.fromPlayer(player);
-			if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
+			//if(!PermissionUtil.verifyActivePermissionLevel(user, PermissionLevel.GM, true)) return true;
+			if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_ITEM, true)) return true;
 		}
 		else {
 			sender.sendMessage(ChatColor.RED + "This is an ingame-only command.");
@@ -57,40 +58,49 @@ public class ItemCommand implements CommandExecutor {
 		}
 		
 		if(args.length == 0) {
-			sender.sendMessage(ChatColor.YELLOW + "/item class -c <ItemClass> <MaterialType> <LvMin> <Cooldown> <IsUnbreakable> <Damage> <Armor>" 
+			sender.sendMessage(ChatColor.YELLOW + "/item class -c <ItemClass> <MaterialType> <LvMin> <Cooldown> <Unbreakable?> <Damage> <Armor>" 
 				+ ChatColor.GRAY + " create a new item class");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -l" + ChatColor.GRAY + " list all item classes");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass>" + ChatColor.GRAY + " show information about an item class");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> name <DisplayName>" + ChatColor.GRAY + " set item class display name");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> namecolor <Color>" + ChatColor.GRAY + " set item class display name color");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> lore <add <Lore>|remove <LineNo>]>" + ChatColor.GRAY + " view/edit item class lore");
-			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> type|lvmin|cooldown|unbreakable|undroppable|damage|armor|speedboost <Value>" + ChatColor.GRAY + " edit item class data");
+			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> type|lvmin|cooldown|unbreakable|undroppable|damage|armor|speedboost|stacksize <Value>" + ChatColor.GRAY + " edit item class data");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -s <ItemClass> push" + ChatColor.GRAY + " update all items of this class with updated stats (will revert custom changes made to these items)");
 			sender.sendMessage(ChatColor.YELLOW + "/item class -d <ItemClass>" + ChatColor.GRAY + " delete item class");
 			sender.sendMessage(ChatColor.YELLOW + "/item give <ItemClass>" + ChatColor.GRAY + " receive an item of the specified class");
 			sender.sendMessage(ChatColor.DARK_GRAY + "" +  ChatColor.BOLD + "Note:" + ChatColor.DARK_GRAY + " Class names must not contain spaces.");
+			sender.sendMessage(ChatColor.GRAY + "View the full documentation at " + ChatColor.UNDERLINE + Dragons.STAFF_DOCUMENTATION);
 			return true;
 		}
 		
-		if(args[0].equalsIgnoreCase("class")) {
+		if(args[0].equalsIgnoreCase("class") || args[0].equalsIgnoreCase("c")) {
 			if(args.length == 1) {
-				sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+				sender.sendMessage(ChatColor.RED + "Insufficient arguments! For usage info, do /item");
 				return true;
 			}
 			
 			if(args[1].equalsIgnoreCase("-c")) {
 				if(args.length < 9) {
-					sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! /item class -c <ItemClass> <MaterialType> <LvMin> <Cooldown> <IsUnbreakable> <Damage> <Armor>");
 					return true;
 				}
 				
-				Material type = Material.valueOf(args[3]);
+				Material type = StringUtil.parseMaterialType(sender, args[3]);
+				if(type == null) return true;
 				int lvMin = Integer.valueOf(args[4]);
 				double cooldown = Double.valueOf(args[5]);
-				boolean unbreakable = Boolean.valueOf(args[6]);
+				boolean unbreakable = false;
+				try {
+					unbreakable = Boolean.valueOf(args[6]);
+				}
+				catch(Exception e) {
+					sender.sendMessage(ChatColor.RED + "Unbreakability must be either true (unbreakable) or false (breakable)");
+					return true;
+				}
 				double damage = Double.valueOf(args[7]);
 				double armor = Double.valueOf(args[8]);
-				ItemClass itemClass = itemClassLoader.registerNew(args[2], "Unnamed Item", ChatColor.YELLOW, type, lvMin, cooldown, 0.0, unbreakable, false, damage, armor, new ArrayList<>());
+				ItemClass itemClass = itemClassLoader.registerNew(args[2], "Unnamed Item", ChatColor.YELLOW, type, lvMin, cooldown, 0.0, unbreakable, false, damage, armor, new ArrayList<>(), 64);
 				if(itemClass == null) {
 					sender.sendMessage(ChatColor.RED + "An error occurred! Does a class by this name already exist?");
 					return true;
@@ -110,14 +120,14 @@ public class ItemCommand implements CommandExecutor {
 			
 			if(args[1].equalsIgnoreCase("-s")) {
 				if(args.length == 2) {
-					sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! For usage info, do /item");
 					return true;
 				}
 
 				ItemClass itemClass = itemClassLoader.getItemClassByClassName(args[2]);
 				
 				if(itemClass == null) {
-					sender.sendMessage(ChatColor.RED + "That's not a valid item class name!");
+					sender.sendMessage(ChatColor.RED + "That's not a valid item class name! To list all item classes, do /item class -l");
 					return true;
 				}
 				
@@ -132,10 +142,26 @@ public class ItemCommand implements CommandExecutor {
 					sender.sendMessage(ChatColor.GRAY + "Walk Speed Boost: " + ChatColor.GREEN + itemClass.getSpeedBoost());
 					sender.sendMessage(ChatColor.GRAY + "Unbreakable: " + ChatColor.GREEN + itemClass.isUnbreakable());
 					sender.sendMessage(ChatColor.GRAY + "Undroppable: " + ChatColor.GREEN + itemClass.isUndroppable());
+					sender.sendMessage(ChatColor.GRAY + "Max. Stack Size: " + ChatColor.GREEN + itemClass.getMaxStackSize());
 					sender.sendMessage(ChatColor.GRAY + "Lore:");
 					for(String loreLine : itemClass.getLore()) {
 						sender.sendMessage(ChatColor.GREEN + " " + loreLine);
 					}
+					return true;
+				}
+
+				if(args[3].equalsIgnoreCase("push")) {
+					Document update = new Document(itemClass.getData());
+					update.remove("_id");
+					update.remove("type");
+					storageManager.push(GameObjectType.ITEM, new Document("className", itemClass.getClassName()), update);
+					sender.sendMessage(ChatColor.GREEN + "Updated all items matching class " + itemClass.getClassName() + " in database.");
+					sender.sendMessage(ChatColor.GREEN + "Players must rejoin to receive the updated items.");
+					return true;
+				}
+				
+				if(args.length == 4) {
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! /item class -s <ClassName> <Attribute> <Value|Arguments...>");
 					return true;
 				}
 				
@@ -225,20 +251,21 @@ public class ItemCommand implements CommandExecutor {
 					return true;
 				}
 				
-				if(args[3].equalsIgnoreCase("push")) {
-					Document update = new Document(itemClass.getData());
-					update.remove("_id");
-					update.remove("type");
-					storageManager.push(GameObjectType.ITEM, new Document("className", itemClass.getClassName()), update);
-					sender.sendMessage(ChatColor.GREEN + "Updated all items matching class " + itemClass.getClassName() + " in database.");
-					sender.sendMessage(ChatColor.GREEN + "Players must rejoin to receive the updated items.");
+				if(args[3].equalsIgnoreCase("stacksize")) {
+					int stackSize = Integer.valueOf(args[4]);
+					itemClass.setMaxStackSize(stackSize);
+					sender.sendMessage(ChatColor.GREEN + "Updated max. stack size successfully.");
 					return true;
 				}
+				
+				sender.sendMessage(ChatColor.RED + "Invalid attribute! For usage info, do /item");
+				return true;
 			}
 			
 			if(args[1].equalsIgnoreCase("-d")) {
+				if(!PermissionUtil.verifyActivePermissionFlag(user, SystemProfileFlag.GM_DELETE, true)) return true;
 				if(args.length == 2) {
-					sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+					sender.sendMessage(ChatColor.RED + "Insufficient arguments! /item class -d <ClassName>");
 					return true;
 				}
 
@@ -259,7 +286,7 @@ public class ItemCommand implements CommandExecutor {
 		
 		if(args[0].equalsIgnoreCase("give")) {
 			if(args.length == 1) {
-				sender.sendMessage(ChatColor.RED + "Insufficient arguments!");
+				sender.sendMessage(ChatColor.RED + "Insufficient arguments! /item give <ClassName>");
 				return true;
 			}
 
@@ -275,6 +302,7 @@ public class ItemCommand implements CommandExecutor {
 			return true;
 		}
 		
+		sender.sendMessage(ChatColor.RED + "Invalid arguments! For usage info, do /item");
 		return true;
 	}
 	

@@ -3,6 +3,7 @@ package mc.dragons.core.gameobject.loader;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.bukkit.Location;
@@ -19,6 +20,8 @@ import mc.dragons.core.gameobject.npc.NPCClass;
 import mc.dragons.core.storage.StorageAccess;
 import mc.dragons.core.storage.StorageManager;
 import mc.dragons.core.storage.StorageUtil;
+import mc.dragons.core.storage.impl.LocalStorageAccess;
+import mc.dragons.core.storage.impl.LocalStorageManager;
 import mc.dragons.core.util.StringUtil;
 
 public class NPCLoader extends GameObjectLoader<NPC> {
@@ -27,10 +30,12 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	private Logger LOGGER = Dragons.getInstance().getLogger();
 	private GameObjectRegistry masterRegistry;
 	private boolean allPermanentLoaded = false;
+	private LocalStorageManager localStorageManager;
 	
 	private NPCLoader(Dragons instance, StorageManager storageManager) {
 		super(instance, storageManager);
 		masterRegistry = instance.getGameObjectRegistry();
+		localStorageManager = instance.getLocalStorageManager();
 	}
 	
 	public synchronized static NPCLoader getInstance(Dragons instance, StorageManager storageManager) {
@@ -44,9 +49,12 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	public NPC loadObject(StorageAccess storageAccess) {
 		lazyLoadAllPermanent();
 		LOGGER.fine("Loading NPC " + storageAccess.getIdentifier());
-		Location loc = StorageUtil.docToLoc((Document)storageAccess.get("lastLocation"));
+		NPCType npcType = NPCType.valueOf((String) storageAccess.get("npcType"));
+		Location loc = StorageUtil.docToLoc((Document) storageAccess.get("lastLocation"));
 		Entity e = loc.getWorld().spawnEntity(loc, EntityType.valueOf((String)storageAccess.get("entityType")));
-		return new NPC(e, storageManager, storageAccess);
+		NPC npc = new NPC(e, npcType.isPersistent() ? storageManager : localStorageManager, npcType.isPersistent() ? storageAccess : localStorageManager.downgrade(storageAccess));
+		e.setMetadata("handle", new FixedMetadataValue(plugin, npc));
+		return npc;
 	}
 	
 	public NPC registerNew(Entity entity, String npcClassName) {
@@ -72,13 +80,12 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 	}
 	
 	public static NPC fromBukkit(Entity entity) {
-		if(!entity.hasMetadata("handle")) {
-			return null;
-		}
-		if(entity.getMetadata("handle").size() == 0) {
-			return null;
-		}
-		return (NPC) entity.getMetadata("handle").get(0).value();
+		if(entity == null) return null;
+		if(!entity.hasMetadata("handle")) return null;
+		if(entity.getMetadata("handle").size() == 0) return null;
+		Object value = entity.getMetadata("handle").get(0).value();
+		if(value instanceof NPC) return (NPC) value;
+		return null;
 	}
 	
 	public NPC registerNew(Entity entity, String className, String name, double maxHealth, int level, NPCType npcType, boolean ai, boolean immortal) {
@@ -96,8 +103,14 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 				.append("immortal", immortal)
 				.append("lootTable", new Document());
 		// TODO: enforce hostile/non-hostile behavior???
-		StorageAccess storageAccess = storageManager.getNewStorageAccess(GameObjectType.NPC, data);
-		NPC npc = new NPC(entity, storageManager, storageAccess);
+		StorageAccess storageAccess = npcType.isPersistent() ? storageManager.getNewStorageAccess(GameObjectType.NPC, data) : localStorageManager.getNewStorageAccess(GameObjectType.NPC, data);
+		NPC npc = new NPC(entity, npcType.isPersistent() ? storageManager : localStorageManager, storageAccess);
+		if(storageAccess instanceof LocalStorageAccess) {
+			LOGGER.fine("- Using local storage access for NPC of type " + npcType + " (" + storageAccess + ")");
+		}
+		if(storageAccess == null) {
+			LOGGER.warning("- Whoops! The storage access was null!");
+		}
 		npc.setMaxHealth(maxHealth);
 		npc.setHealth(maxHealth);
 		entity.setMetadata("handle", new FixedMetadataValue(plugin, npc));
@@ -111,8 +124,11 @@ public class NPCLoader extends GameObjectLoader<NPC> {
 		allPermanentLoaded = true; // must be here to prevent infinite recursion -> stack overflow -> death
 		masterRegistry.removeFromRegistry(GameObjectType.NPC);
 		storageManager.getAllStorageAccess(GameObjectType.NPC, new Document("$or", 
-				Arrays.asList(new Document("npcType", NPCType.QUEST.toString()), 
-							  new Document("npcType", NPCType.SHOP.toString()))))
+				Arrays.asList(NPCType.values())
+					.stream()
+					.filter(type -> type.isPersistent())
+					.map(type -> new Document("npcType", type.toString()))
+					.collect(Collectors.toList())))
 			.stream()
 			.forEach((storageAccess) -> {
 				NPC npc = loadObject(storageAccess);
