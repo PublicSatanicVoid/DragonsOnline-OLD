@@ -21,7 +21,7 @@ import mc.dragons.core.storage.StorageManager;
  * <p>Subclasses should ensure that all changes to fields are reflected
  * in the data using the protected setData() and getData() methods.
  * 
- * @author Rick
+ * @author Adam
  *
  */
 public abstract class GameObject {
