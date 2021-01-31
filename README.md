@@ -1,3 +1,5 @@
+**NOTE: ** References to `@author Rick` are because that is the online alias I used to use. However, I (Adam Priebe) am the author of all this code, unless a file notes otherwise.
+
 # DragonsRPG
 Minecraft MMORPG with dragons!
 
